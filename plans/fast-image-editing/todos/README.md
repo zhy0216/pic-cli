@@ -16,7 +16,7 @@ default_reasoning_effort: max
 | --- | --- | --- | --- | --- | --- | --- |
 | [done/01-foundation.md](done/01-foundation.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 基础 workspace、真实 codec/管线、契约及 24 个测试完成；release 验收通过 |
 | [done/02-geometry-codecs.md](done/02-geometry-codecs.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 几何/编解码参数、EXIF 方向与 alpha 完成；40 个测试和 21 个 release CLI 回归通过 |
-| 03-adjustments-filters.md | P0 | hard | codex（继承） | gpt-6-astra / max | pending | 调色、曲线、模糊、锐化与像素验证 |
+| [done/03-adjustments-filters.md](done/03-adjustments-filters.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 调色/曲线/灰度/反相/高斯/锐化完成；58 个测试与 25 个 release CLI 回归通过 |
 | 04-project-history.md | P0 | hard | codex（继承） | gpt-6-astra / max | pending | 自包含素材、不可变 ops、原子提交和跨进程历史 |
 | 05-replay-preview.md | P0 | hard | codex（继承） | gpt-6-astra / max | pending | 检查点、缓存失效、坐标预览、修改旧步骤和模板 |
 | 06-layers-masks.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 图层、无损变换、混合、蒙版、选区 |
@@ -30,7 +30,7 @@ default_reasoning_effort: max
 
 1. [done/01-foundation.md](done/01-foundation.md)；依赖：无；已完成并保留验收证据。
 2. [done/02-geometry-codecs.md](done/02-geometry-codecs.md)；依赖 01-foundation.md；已完成并保留验收证据。
-3. 03-adjustments-filters.md；依赖 02-geometry-codecs.md。
+3. [done/03-adjustments-filters.md](done/03-adjustments-filters.md)；依赖 02-geometry-codecs.md；已完成并保留验收证据。
 4. 04-project-history.md；依赖 03-adjustments-filters.md。
 5. 05-replay-preview.md；依赖 04-project-history.md。
 6. 06-layers-masks.md；依赖 05-replay-preview.md。

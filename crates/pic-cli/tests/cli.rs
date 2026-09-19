@@ -145,7 +145,7 @@ fn help_version_and_capabilities_are_truthful_and_json_safe() {
         );
     }
     let value = success(dir.path(), &["capabilities"]);
-    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 6);
+    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 13);
     assert_eq!(value["data"]["operations"][0]["op"], "identity");
     let items = value["data"]["capabilities"].as_array().unwrap();
     for status in ["supported", "partial", "not_implemented"] {
@@ -806,6 +806,462 @@ fn write_pipeline(dir: &Path, operations: Vec<Value>) {
 
 fn geometry_op(op: &str, params: Value) -> Value {
     serde_json::json!({"op":op,"op_version":1,"target":"canvas","params":params})
+}
+
+#[test]
+fn every_photo_command_matches_its_explicit_json_parameters_and_pixels() {
+    use serde_json::json;
+    let (dir, _) = fixture();
+    let capabilities = success(dir.path(), &["capabilities"]);
+    let operations = capabilities["data"]["operations"].as_array().unwrap();
+    let levels = json!({"channel":"rgb","input_black":0,"input_white":1,"gamma":1,"output_black":0,"output_white":1});
+    for (op, arguments, params) in [
+        (
+            "adjust",
+            vec![],
+            json!({"exposure":0,"brightness":0,"contrast":1,"saturation":1}),
+        ),
+        (
+            "adjust",
+            vec!["--exposure", "1"],
+            json!({"exposure":1,"brightness":0,"contrast":1,"saturation":1}),
+        ),
+        (
+            "adjust",
+            vec!["--brightness", "-0.125"],
+            json!({"exposure":0,"brightness":-0.125,"contrast":1,"saturation":1}),
+        ),
+        (
+            "adjust",
+            vec!["--contrast", "1.5"],
+            json!({"exposure":0,"brightness":0,"contrast":1.5,"saturation":1}),
+        ),
+        (
+            "adjust",
+            vec!["--saturation", "0"],
+            json!({"exposure":0,"brightness":0,"contrast":1,"saturation":0}),
+        ),
+        (
+            "adjust",
+            vec![
+                "--exposure",
+                "-0.25",
+                "--brightness",
+                "0.125",
+                "--contrast",
+                "0.75",
+                "--saturation",
+                "1.2",
+            ],
+            json!({"exposure":-0.25,"brightness":0.125,"contrast":0.75,"saturation":1.2}),
+        ),
+        ("levels", vec![], levels),
+        (
+            "levels",
+            vec![
+                "--channel",
+                "red",
+                "--input-black",
+                "0.1",
+                "--input-white",
+                "0.9",
+                "--gamma",
+                "1.5",
+                "--output-black",
+                "0.125",
+                "--output-white",
+                "0.875",
+            ],
+            json!({"channel":"red","input_black":0.1,"input_white":0.9,"gamma":1.5,"output_black":0.125,"output_white":0.875}),
+        ),
+        (
+            "curves",
+            vec![],
+            json!({"channel":"rgb","points":[[0,0],[1,1]]}),
+        ),
+        (
+            "curves",
+            vec![
+                "--channel",
+                "green",
+                "--points",
+                "[[0,0],[0.25,0.5],[0.5,0.25],[1,1]]",
+            ],
+            json!({"channel":"green","points":[[0,0],[0.25,0.5],[0.5,0.25],[1,1]]}),
+        ),
+        (
+            "curves",
+            vec!["--channel", "blue", "--points", "[[0,0.25],[1,0.75]]"],
+            json!({"channel":"blue","points":[[0,0.25],[1,0.75]]}),
+        ),
+        ("grayscale", vec![], json!({})),
+        ("invert", vec![], json!({})),
+        ("blur", vec![], json!({"sigma":1})),
+        ("blur", vec!["--sigma", "0"], json!({"sigma":0})),
+        ("blur", vec!["--sigma", "0.5"], json!({"sigma":0.5})),
+        ("sharpen", vec![], json!({"sigma":1,"amount":1})),
+        (
+            "sharpen",
+            vec!["--sigma", "0.5", "--amount", "2"],
+            json!({"sigma":0.5,"amount":2}),
+        ),
+    ] {
+        let capability = operations.iter().find(|value| value["op"] == op).unwrap();
+        assert_eq!(capability["op_version"], 1);
+        assert_eq!(capability["params"]["additionalProperties"], false);
+        let help = success(dir.path(), &["help", op]);
+        for parameter in params.as_object().unwrap().keys() {
+            assert!(
+                help["data"]["help"]
+                    .as_str()
+                    .unwrap()
+                    .contains(&format!("--{}", parameter.replace('_', "-")))
+            );
+            assert!(
+                capability["params"]["required"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!(parameter))
+            );
+        }
+        let mut args = vec![
+            op,
+            "--input",
+            "input.png",
+            "--output",
+            "single.png",
+            "--overwrite",
+        ];
+        args.extend(arguments);
+        let single = success(dir.path(), &args);
+        write_pipeline(dir.path(), vec![geometry_op(op, params)]);
+        let pipeline = success(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "input.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                "pipeline.png",
+                "--overwrite",
+            ],
+        );
+        assert_eq!(single["data"]["steps"], pipeline["data"]["steps"], "{op}");
+        assert_eq!(
+            image::open(dir.path().join("single.png"))
+                .unwrap()
+                .into_rgba8(),
+            image::open(dir.path().join("pipeline.png"))
+                .unwrap()
+                .into_rgba8(),
+            "{op}"
+        );
+    }
+}
+
+#[test]
+fn geometry_adjustment_and_filters_export_known_pixels_to_png_and_jpeg() {
+    use serde_json::json;
+    let dir = tempfile::tempdir().unwrap();
+    RgbaImage::from_raw(3, 1, vec![255, 0, 0, 255, 0, 0, 0, 128, 255, 255, 255, 128])
+        .unwrap()
+        .save(dir.path().join("input.png"))
+        .unwrap();
+    let operations = vec![
+        geometry_op("crop", json!({"x":1,"y":0,"width":2,"height":1})),
+        geometry_op("flip", json!({"axis":"horizontal"})),
+        geometry_op(
+            "rotate",
+            json!({"degrees":90,"expand":true,"filter":"nearest","background":[0,0,0,0]}),
+        ),
+        geometry_op(
+            "adjust",
+            json!({"exposure":-1,"brightness":0,"contrast":1,"saturation":1}),
+        ),
+        geometry_op("blur", json!({"sigma":1})),
+        geometry_op("sharpen", json!({"sigma":1,"amount":1})),
+    ];
+    write_pipeline(dir.path(), operations.clone());
+    let result = success(
+        dir.path(),
+        &[
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "output.png",
+        ],
+    );
+    assert_eq!(result["data"]["operations_applied"], 6);
+    for (index, step) in result["data"]["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert_eq!(step["index"], index);
+        assert_eq!(step["op"], operations[index]["op"]);
+    }
+    // sigma=1 tail T=0.30047486017377. After half exposure, blur and unsharp,
+    // top linear RGB=0.5-T^2, bottom=T^2; sRGB bytes 171/85. Alpha stays 128.
+    let expected = RgbaImage::from_raw(1, 2, vec![171, 171, 171, 128, 85, 85, 85, 128]).unwrap();
+    assert_eq!(
+        image::open(dir.path().join("output.png"))
+            .unwrap()
+            .into_rgba8(),
+        expected
+    );
+    failure(
+        dir.path(),
+        &[
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "output.jpg",
+        ],
+        "alpha_not_supported",
+    );
+    assert!(!dir.path().join("output.jpg").exists());
+    success(
+        dir.path(),
+        &[
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "output.jpg",
+            "--jpeg-quality",
+            "100",
+            "--jpeg-background",
+            "#ffffff",
+        ],
+    );
+    let jpeg = image::open(dir.path().join("output.jpg"))
+        .unwrap()
+        .into_rgb8();
+    assert_eq!(jpeg.dimensions(), (1, 2));
+    for (pixel, expected) in jpeg.pixels().zip([218u8, 195]) {
+        assert!(pixel.0.iter().all(|actual| actual.abs_diff(expected) <= 2));
+    }
+    assert_no_temporaries(dir.path());
+}
+
+#[test]
+fn photo_pipelines_keep_step_order_and_never_quantize_or_clip_between_steps() {
+    use serde_json::json;
+    let (dir, original) = fixture();
+    write_pipeline(
+        dir.path(),
+        vec![
+            geometry_op(
+                "adjust",
+                json!({"exposure":20,"brightness":0,"contrast":1,"saturation":1}),
+            ),
+            geometry_op(
+                "adjust",
+                json!({"exposure":-20,"brightness":0,"contrast":1,"saturation":1}),
+            ),
+        ],
+    );
+    success(
+        dir.path(),
+        &[
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "roundtrip.png",
+        ],
+    );
+    assert_eq!(
+        image::open(dir.path().join("roundtrip.png"))
+            .unwrap()
+            .into_rgba8(),
+        original
+    );
+    let mut operations = vec![
+        geometry_op(
+            "adjust",
+            json!({"exposure":1,"brightness":0,"contrast":1,"saturation":1}),
+        ),
+        geometry_op(
+            "adjust",
+            json!({"exposure":0,"brightness":0.125,"contrast":1,"saturation":1}),
+        ),
+    ];
+    let mut outputs = Vec::new();
+    for name in ["first.png", "second.png"] {
+        write_pipeline(dir.path(), operations.clone());
+        success(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "input.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                name,
+            ],
+        );
+        outputs.push(image::open(dir.path().join(name)).unwrap().into_rgba8());
+        operations.reverse();
+    }
+    assert_ne!(outputs[0], outputs[1]);
+    // First input channel is 0. Exposure then brightness gives linear 0.125 (99 sRGB);
+    // brightness then exposure gives linear 0.25 (137 sRGB), even at alpha zero.
+    assert_eq!(outputs[0].get_pixel(0, 0)[0], 99);
+    assert_eq!(outputs[1].get_pixel(0, 0)[0], 137);
+}
+
+#[test]
+fn photo_parameter_errors_and_runtime_overflow_never_publish_success() {
+    use serde_json::json;
+    let (dir, _) = fixture();
+    for arguments in [
+        vec!["adjust", "--exposure", "NaN"],
+        vec!["adjust", "--brightness", "inf"],
+        vec!["adjust", "--contrast", "-inf"],
+        vec!["adjust", "--saturation", "-1"],
+        vec!["adjust", "--exposure", "21"],
+        vec!["adjust", "--brightness", "1.1"],
+        vec!["adjust", "--contrast", "11"],
+        vec!["adjust", "--saturation", "NaN"],
+        vec!["levels", "--input-black", "1"],
+        vec!["levels", "--gamma", "0"],
+        vec!["levels", "--gamma", "NaN"],
+        vec!["levels", "--output-black", "0.75", "--output-white", "0.25"],
+        vec!["curves", "--channel", "alpha"],
+        vec!["curves", "--points", "[[0,0],[0.5,NaN],[1,1]]"],
+        vec!["curves", "--points", "[[0,0],[0.5,1],[0.5,0],[1,1]]"],
+        vec!["grayscale", "--weights", "equal"],
+        vec!["invert", "--channel", "alpha"],
+        vec!["blur", "--sigma", "101"],
+        vec!["blur", "--sigma", "NaN"],
+        vec!["blur", "--edge", "wrap"],
+        vec!["sharpen", "--amount", "inf"],
+        vec!["sharpen", "--sigma", "-1"],
+    ] {
+        let mut args = arguments;
+        args.extend(["--input", "missing.png", "--output", "absent.png"]);
+        let error = failure(dir.path(), &args, "invalid_argument");
+        assert_eq!(error["timings"]["read_ms"], 0.0);
+        assert!(!dir.path().join("absent.png").exists());
+        fs::write(dir.path().join("absent.png"), b"preserve").unwrap();
+        args.push("--overwrite");
+        failure(dir.path(), &args, "invalid_argument");
+        assert_eq!(
+            fs::read(dir.path().join("absent.png")).unwrap(),
+            b"preserve"
+        );
+        fs::remove_file(dir.path().join("absent.png")).unwrap();
+    }
+    for (op, params) in [
+        ("adjust", json!({"exposure":0})),
+        ("levels", json!({"gamma":1})),
+        (
+            "curves",
+            json!({"channel":"rgb","points":[[0,0],[1,1]],"interpolation":"cubic"}),
+        ),
+        ("blur", json!({"sigma":null})),
+        ("blur", json!([1])),
+        ("sharpen", json!({"sigma":1,"amount":"NaN"})),
+        ("grayscale", json!({"ignored":true})),
+        ("invert", json!([])),
+    ] {
+        write_pipeline(dir.path(), vec![geometry_op(op, params)]);
+        let error = failure(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "missing.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                "absent.png",
+            ],
+            "invalid_argument",
+        );
+        assert!(
+            error["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("operations[0]")
+        );
+        assert!(!dir.path().join("absent.png").exists());
+    }
+    for number in ["NaN", "Infinity", "-Infinity", "1e999"] {
+        fs::write(dir.path().join("geometry.json"),format!(r#"{{"schema_version":1,"operations":[{{"op":"blur","op_version":1,"target":"canvas","params":{{"sigma":{number}}}}}]}}"#)).unwrap();
+        failure(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "missing.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                "absent.png",
+            ],
+            "invalid_json",
+        );
+        assert!(!dir.path().join("absent.png").exists());
+    }
+    write_pipeline(
+        dir.path(),
+        vec![
+            geometry_op(
+                "adjust",
+                json!({"exposure":20,"brightness":0,"contrast":1,"saturation":1})
+            );
+            7
+        ],
+    );
+    for overwrite in [false, true] {
+        let mut args = vec![
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "absent.png",
+        ];
+        if overwrite {
+            fs::write(dir.path().join("absent.png"), b"preserve").unwrap();
+            args.push("--overwrite");
+        }
+        let error = failure(dir.path(), &args, "invalid_argument");
+        assert!(
+            error["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("operations[6]")
+        );
+        assert_eq!(error["timings"]["encode_ms"], 0.0);
+        assert_eq!(error["timings"]["write_ms"], 0.0);
+        if overwrite {
+            assert_eq!(
+                fs::read(dir.path().join("absent.png")).unwrap(),
+                b"preserve"
+            );
+        } else {
+            assert!(!dir.path().join("absent.png").exists());
+        }
+    }
+    assert_no_temporaries(dir.path());
 }
 
 #[test]

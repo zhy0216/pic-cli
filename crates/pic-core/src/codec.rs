@@ -165,6 +165,8 @@ pub fn load(
 }
 
 fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<LoadedImage> {
+    #[cfg(test)]
+    tests::DECODE_CALLS.with(|calls| calls.set(calls.get() + 1));
     let image_format = image::guess_format(bytes).map_err(|_| {
         PicError::new(
             ErrorCode::UnsupportedFormat,
@@ -277,6 +279,8 @@ pub fn encode(
     options: &ResolvedEncoding,
     limits: &ResourceLimits,
 ) -> Result<Vec<u8>> {
+    #[cfg(test)]
+    tests::ENCODE_CALLS.with(|calls| calls.set(calls.get() + 1));
     let count = limits.check_dimensions(raster.width(), raster.height())?;
     // Validate even for library callers constructing ResolvedEncoding themselves.
     let options = EncodeOptions {
@@ -424,6 +428,58 @@ fn publish_with(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    thread_local! {
+        pub(super) static DECODE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+        pub(super) static ENCODE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    }
+
+    #[test]
+    fn multistep_file_run_decodes_and_encodes_once() {
+        use crate::pipeline::{self, Pipeline, RunRequest};
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("input.png");
+        let output = dir.path().join("output.png");
+        image::RgbaImage::from_pixel(2, 2, image::Rgba([120, 60, 20, 128]))
+            .save(&input)
+            .unwrap();
+        let operations = serde_json::json!([
+            {"op":"flip","op_version":1,"target":"canvas","params":{"axis":"horizontal"}},
+            {"op":"adjust","op_version":1,"target":"canvas","params":{"exposure":1,"brightness":0,"contrast":1,"saturation":1}},
+            {"op":"blur","op_version":1,"target":"canvas","params":{"sigma":1}},
+            {"op":"sharpen","op_version":1,"target":"canvas","params":{"sigma":1,"amount":1}},
+            {"op":"adjust","op_version":1,"target":"canvas","params":{"exposure":-1,"brightness":0,"contrast":1,"saturation":1}}
+        ]);
+        let limits = ResourceLimits::default();
+        let pipeline = Pipeline::from_json(
+            &serde_json::to_vec(&serde_json::json!({"schema_version":1,"operations":operations}))
+                .unwrap(),
+            dir.path(),
+            &limits,
+        )
+        .unwrap();
+        DECODE_CALLS.set(0);
+        ENCODE_CALLS.set(0);
+        let result = pipeline::run(
+            RunRequest {
+                input: &input,
+                output: &output,
+                pipeline: &pipeline,
+                encoding: EncodeOptions::default(),
+                overwrite: false,
+            },
+            &limits,
+            &mut Diagnostics::default(),
+        )
+        .unwrap();
+        assert_eq!(DECODE_CALLS.get(), 1);
+        assert_eq!(ENCODE_CALLS.get(), 1);
+        assert_eq!(result.operations_applied, 5);
+        assert_eq!(
+            image::open(output).unwrap().into_rgba8(),
+            image::open(input).unwrap().into_rgba8()
+        );
+    }
 
     #[test]
     fn partial_write_failure_never_publishes_or_replaces_a_target() {

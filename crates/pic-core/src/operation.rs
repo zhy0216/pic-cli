@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+pub mod adjustments;
 pub mod geometry;
 
+use adjustments::{AdjustParams, BlurParams, CurvesParams, LevelsParams, SharpenParams};
 use geometry::{CanvasParams, CropParams, FlipParams, ResizeParams, RotateParams};
 
 use crate::{
@@ -34,7 +36,23 @@ impl OperationSpec {
     }
 
     pub fn validate(&self) -> Result<Operation> {
-        if !["identity", "crop", "resize", "rotate", "flip", "canvas"].contains(&self.op.as_str()) {
+        if ![
+            "identity",
+            "crop",
+            "resize",
+            "rotate",
+            "flip",
+            "canvas",
+            "adjust",
+            "levels",
+            "curves",
+            "grayscale",
+            "invert",
+            "blur",
+            "sharpen",
+        ]
+        .contains(&self.op.as_str())
+        {
             return Err(PicError::new(
                 ErrorCode::UnknownOperation,
                 format!("operation '{}' is not implemented", self.op),
@@ -56,7 +74,7 @@ impl OperationSpec {
             ));
         }
         let operation = match self.op.as_str() {
-            "identity" => {
+            "identity" | "grayscale" | "invert" => {
                 if !self
                     .params
                     .as_object()
@@ -64,16 +82,25 @@ impl OperationSpec {
                 {
                     return Err(PicError::new(
                         ErrorCode::InvalidArgument,
-                        "identity params must be an empty object",
+                        format!("{} params must be an empty object", self.op),
                     ));
                 }
-                Operation::Identity
+                match self.op.as_str() {
+                    "grayscale" => Operation::Grayscale,
+                    "invert" => Operation::Invert,
+                    _ => Operation::Identity,
+                }
             }
             "crop" => Operation::Crop(self.parameters()?),
             "resize" => Operation::Resize(self.parameters()?),
             "rotate" => Operation::Rotate(self.parameters()?),
             "flip" => Operation::Flip(self.parameters()?),
             "canvas" => Operation::Canvas(self.parameters()?),
+            "adjust" => Operation::Adjust(self.parameters()?),
+            "levels" => Operation::Levels(self.parameters()?),
+            "curves" => Operation::Curves(self.parameters()?),
+            "blur" => Operation::Blur(self.parameters()?),
+            "sharpen" => Operation::Sharpen(self.parameters()?),
             _ => unreachable!("known operation checked above"),
         };
         operation.validate()?;
@@ -81,6 +108,14 @@ impl OperationSpec {
     }
 
     fn parameters<T: serde::de::DeserializeOwned>(&self) -> Result<T> {
+        // Serde structs also accept positional arrays; the operation contract only
+        // permits named JSON objects so parameters cannot bypass their field names.
+        if !self.params.is_object() {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                format!("{} params must be an object", self.op),
+            ));
+        }
         serde_json::from_value(self.params.clone()).map_err(|e| {
             PicError::new(
                 ErrorCode::InvalidArgument,
@@ -99,6 +134,13 @@ pub enum Operation {
     Rotate(RotateParams),
     Flip(FlipParams),
     Canvas(CanvasParams),
+    Adjust(AdjustParams),
+    Levels(LevelsParams),
+    Curves(CurvesParams),
+    Grayscale,
+    Invert,
+    Blur(BlurParams),
+    Sharpen(SharpenParams),
 }
 
 impl Operation {
@@ -111,6 +153,13 @@ impl Operation {
             Self::Rotate(p) => ("rotate", serde_json::json!(p)),
             Self::Flip(p) => ("flip", serde_json::json!(p)),
             Self::Canvas(p) => ("canvas", serde_json::json!(p)),
+            Self::Adjust(p) => ("adjust", serde_json::json!(p)),
+            Self::Levels(p) => ("levels", serde_json::json!(p)),
+            Self::Curves(p) => ("curves", serde_json::json!(p)),
+            Self::Grayscale => ("grayscale", serde_json::json!({})),
+            Self::Invert => ("invert", serde_json::json!({})),
+            Self::Blur(p) => ("blur", serde_json::json!(p)),
+            Self::Sharpen(p) => ("sharpen", serde_json::json!(p)),
         };
         OperationSpec {
             op: op.into(),
@@ -122,11 +171,16 @@ impl Operation {
 
     pub fn validate(&self) -> Result<()> {
         match self {
-            Self::Identity | Self::Flip(_) => Ok(()),
+            Self::Identity | Self::Flip(_) | Self::Grayscale | Self::Invert => Ok(()),
             Self::Crop(p) => p.validate(),
             Self::Resize(p) => p.validate(),
             Self::Rotate(p) => p.validate(),
             Self::Canvas(p) => p.validate(),
+            Self::Adjust(p) => p.validate(),
+            Self::Levels(p) => p.validate(),
+            Self::Curves(p) => p.validate(),
+            Self::Blur(p) => p.validate(),
+            Self::Sharpen(p) => p.validate(),
         }
     }
 
@@ -150,6 +204,13 @@ impl Operation {
             Self::Rotate(p) => geometry::rotate(raster, p, limits)?,
             Self::Flip(p) => geometry::flip(raster, p, limits)?,
             Self::Canvas(p) => geometry::canvas(raster, p, limits)?,
+            Self::Adjust(p) => adjustments::adjust(raster, p, limits)?,
+            Self::Levels(p) => adjustments::levels(raster, p, limits)?,
+            Self::Curves(p) => adjustments::curves(raster, p, limits)?,
+            Self::Grayscale => adjustments::grayscale(raster, limits)?,
+            Self::Invert => adjustments::invert(raster, limits)?,
+            Self::Blur(p) => adjustments::blur(raster, p.sigma, limits)?,
+            Self::Sharpen(p) => adjustments::sharpen(raster, p, limits)?,
         };
         *raster = result;
         Ok(())

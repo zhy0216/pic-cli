@@ -34,7 +34,7 @@ pub struct OperationCapability {
 
 #[derive(Debug, Serialize)]
 pub struct Capabilities {
-    pub commands: [&'static str; 11],
+    pub commands: [&'static str; 18],
     pub result_schema_version: u32,
     pub pipeline_schema_version: u32,
     pub pixel_semantics: &'static str,
@@ -60,6 +60,13 @@ pub fn capabilities() -> Capabilities {
             "rotate",
             "flip",
             "canvas",
+            "adjust",
+            "levels",
+            "curves",
+            "grayscale",
+            "invert",
+            "blur",
+            "sharpen",
         ],
         result_schema_version: RESULT_SCHEMA_VERSION,
         pipeline_schema_version: PIPELINE_SCHEMA_VERSION,
@@ -102,7 +109,7 @@ pub fn capabilities() -> Capabilities {
                 id: "pipeline",
                 status: Partial,
                 scope: "current",
-                details: "Schema v1, ordered identity and geometry operations, explicit parameters and logical steps; unknown operations rejected.",
+                details: "Schema v1, ordered identity, geometry, adjustment and filter operations, explicit parameters and logical steps; unknown operations rejected. One decode and final encode; no intermediate quantization or step fusion.",
             },
             Capability {
                 id: "png",
@@ -120,7 +127,13 @@ pub fn capabilities() -> Capabilities {
                 id: "photo_editing",
                 status: Partial,
                 scope: "current",
-                details: "Geometry supported; exposure, color adjustments, curves and filters remain planned.",
+                details: "Geometry, exposure EV, brightness, contrast, saturation, levels, piecewise linear curves, grayscale, invert, Gaussian blur and unsharp mask supported in linear sRGB RGBA32F. No Photoshop parameter or pixel equivalence claim.",
+            },
+            Capability {
+                id: "adjustments_filters",
+                status: Supported,
+                scope: "current",
+                details: "Scalar v1 semantics; finite parameters only. RGB is not clipped between steps; non-finite f32 results fail. Color operations preserve alpha, blur filters premultiplied color/alpha with clamped edges, sharpen preserves original alpha. JSON requires every parameter; CLI defaults returned in steps.params.",
             },
             Capability {
                 id: "layer_compositing",
@@ -157,6 +170,10 @@ fn operation_capabilities() -> Vec<OperationCapability> {
     let coordinate = json!({"type":"integer", "minimum":0, "maximum":u32::MAX});
     let filter = json!({"enum":["nearest", "bilinear"], "cli_default":"bilinear"});
     let background = json!({"type":"array", "items":{"type":"integer", "minimum":0, "maximum":255}, "minItems":4, "maxItems":4, "cli_default":[0,0,0,0]});
+    let number = |min, max, default| json!({"type":"number", "minimum":min, "maximum":max, "cli_default":default});
+    let channel = json!({"enum":["rgb","red","green","blue"], "cli_default":"rgb"});
+    let sigma = number(0.0, 100.0, 1.0);
+    let empty = json!({"type":"object", "additionalProperties":false, "properties":{}});
     vec![
         OperationCapability {
             op: "identity",
@@ -199,6 +216,55 @@ fn operation_capabilities() -> Vec<OperationCapability> {
             targets: ["canvas"],
             params: json!({"type":"object", "additionalProperties":false, "required":["width","height","anchor","background"], "properties":{"width":dimension,"height":dimension,"anchor":{"enum":["top_left","top","top_right","left","center","right","bottom_left","bottom","bottom_right"],"cli_default":"center"},"background":background}}),
             semantics: "Padding/clipping without scaling. Start/center/end offsets are 0/floor((new-old)/2)/(new-old). Background only fills uncovered canvas; copied source alpha and hidden RGB stay intact.",
+        },
+        OperationCapability {
+            op: "adjust",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: json!({"type":"object", "additionalProperties":false, "required":["exposure","brightness","contrast","saturation"], "properties":{"exposure":number(-20.0,20.0,0.0),"brightness":number(-1.0,1.0,0.0),"contrast":number(0.0,10.0,1.0),"saturation":number(0.0,10.0,1.0)}}),
+            semantics: "All RGB, including hidden color, in linear sRGB: C*=2^exposure, C+=brightness, C=(C-0.5)*contrast+0.5, then C=Y+saturation*(C-Y), Y=0.2126R+0.7152G+0.0722B. Neutral controls skipped; all neutral shares exact samples. Scalar f64 within this operation, f32 result, no clipping; alpha bits unchanged.",
+        },
+        OperationCapability {
+            op: "levels",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: json!({"type":"object", "additionalProperties":false, "required":["channel","input_black","input_white","gamma","output_black","output_white"], "properties":{"channel":channel,"input_black":number(0.0,1.0,0.0),"input_white":number(0.0,1.0,1.0),"gamma":number(0.1,10.0,1.0),"output_black":number(0.0,1.0,0.0),"output_white":number(0.0,1.0,1.0)}}),
+            semantics: "Linear RGB selected channels, including hidden color. input_black<input_white, output_black<=output_white. t=(C-input_black)/(input_white-input_black); C'=output_black+(output_white-output_black)*sign(t)*abs(t)^(1/gamma). Signed extension preserves negative/HDR inputs, no clipping. Equal output endpoints yield a constant. Gamma 1 and matching input/output endpoints are exact identity. Scalar f64 then f32; other channels and alpha unchanged.",
+        },
+        OperationCapability {
+            op: "curves",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: json!({"type":"object", "additionalProperties":false, "required":["channel","points"], "properties":{"channel":channel,"points":{"type":"array","minItems":2,"maxItems":256,"items":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":0,"maximum":1}},"cli_default":[[0,0],[1,1]]}}}),
+            semantics: "Linear RGB selected channels, including hidden color. Points [x,y], strictly increasing x from 0 to 1; y need not be monotonic. Piecewise linear interpolation, exact control values, first/last segment extrapolation outside [0,1]. All x=y gives exact identity. Scalar f64 then f32; no clipping, other channels and alpha unchanged.",
+        },
+        OperationCapability {
+            op: "grayscale",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: empty.clone(),
+            semantics: "Linear RGB becomes Rec.709 Y=0.2126R+0.7152G+0.0722B, evaluated as G+0.2126*(R-G)+0.0722*(B-G). Hidden RGB is transformed; alpha bits unchanged. Scalar f64 then f32, no clipping.",
+        },
+        OperationCapability {
+            op: "invert",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: empty,
+            semantics: "C'=1-C on all linear RGB including hidden color; scalar f64 then f32, no clipping. Alpha bits unchanged. This is not byte-wise sRGB inversion.",
+        },
+        OperationCapability {
+            op: "blur",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: json!({"type":"object", "additionalProperties":false, "required":["sigma"], "properties":{"sigma":sigma}}),
+            semantics: "Gaussian standard deviation in pixels; 0 exact identity. Radius ceil(3*sigma), weights exp(-0.5*(offset/sigma)^2) normalized in f64. Horizontal then vertical scalar passes in premultiplied linear RGBA64F; outside taps clamp to nearest edge. Final unpremultiply and f32 conversion; zero stored alpha yields zero RGB. Dimensions unchanged; no RGB clipping. Buffers: 64 bytes/pixel plus 8 bytes/tap.",
+        },
+        OperationCapability {
+            op: "sharpen",
+            op_version: OP_VERSION,
+            targets: ["canvas"],
+            params: json!({"type":"object", "additionalProperties":false, "required":["sigma","amount"], "properties":{"sigma":sigma,"amount":number(0.0,10.0,1.0)}}),
+            semantics: "Unsharp mask: B is the same blur v1 f32 result; visible RGB C'=C+amount*(C-B). Scalar f64 then f32, overshoot retained. Original alpha bits and zero-alpha hidden RGB preserved. sigma=0 or amount=0 exact identity. Same clamped-edge Gaussian and peak buffer budget as blur.",
         },
     ]
 }
