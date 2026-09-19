@@ -1,0 +1,12 @@
+//! Shared processing core. The CLI only parses arguments and renders results.
+
+pub mod capabilities;
+pub mod codec;
+pub mod document;
+pub mod error;
+pub mod limits;
+pub mod operation;
+pub mod pipeline;
+pub mod result;
+
+pub use error::{ErrorCode, PicError, Result};

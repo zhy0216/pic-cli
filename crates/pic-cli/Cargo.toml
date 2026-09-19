@@ -1,0 +1,19 @@
+[package]
+name = "pic-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Explicit image processing for agents"
+
+[dependencies]
+pic-core = { path = "../pic-core" }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+image.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true
