@@ -1,6 +1,6 @@
 # pic-cli：快速、参数化的图像编辑
 
-状态：直接图像编辑实现中。用户已明确本轮只做无需 LLM/模型参与的直接编辑，覆盖照片调整、图层合成和以 ops 为核心的轻量工程；智能编辑仅记录为未来规划。支持中间状态分析、重放和继续编辑。具体 Photoshop 兼容深度、目标平台和基准硬件待确认。
+状态：本轮直接编辑已完成，全部任务已合入 main 并通过验收；具体结果见文末执行记录。范围为无需 LLM/图像模型参与的照片调整、图层合成和以 ops 为核心的轻量工程，支持中间状态观察、重放和继续编辑。智能编辑由用户明确延期，记录在 [roadmap](roadmap/README.md)。当前能力和限制以 [能力矩阵](../../docs/capability-matrix.md)、CLI capabilities 及对应操作契约为准；本轮验证平台为 Linux x86_64。
 
 ## 意图
 
@@ -8,13 +8,13 @@
 
 已确认：Rust、CLI、agent 可调用、参数化编辑、速度优先；用户最新要求首版聚焦照片调整与图层合成，不接入 LLM 或图像模型。采用自己的轻量工程格式，记录 agent 实际提交的结构化操作（ops），配合源素材、必要的结果资产和按需检查点，支持“编辑 → 查看中间状态 → 分析 → 继续编辑”；像素素材和预览继续使用标准图像格式。这里的分析由调用方完成，CLI 本身只执行明确操作。首版提供线性历史、任意已提交步骤的预览与继续编辑，分支管理和合并留作后续扩展。
 
-尚未确认：每类的具体功能集合、与 Photoshop 的参数及文件兼容深度、常见图片尺寸、目标平台、模型执行环境。下文的格式名称、字段和命令语法是拟定设计，具体性能数字仍是建议，不代表已经实测达到。
+已实现子集与参数语义已在各功能文档固定；Photoshop 参数/PSD 兼容、更广格式/排版和其他平台仍是扩展范围。本方案保留原设计意图，并将命令与当前实现对齐。性能建议与实测结果分别列出，不能把建议值当成已达到的承诺。
 
 ## 仓库现状
 
-- 仓库目前有 `AGENTS.md`、`.gitignore`、本方案和参考资料；没有 `Cargo.toml`、产品源码或现成构建、测试命令。
+- 已建立 Rust workspace：`crates/pic-core` 负责 codec、操作、文档渲染、管线与 ops 工程，`crates/pic-cli` 提供命令、结构化结果和退出码；依赖锁定在 `Cargo.lock`。功能契约、验收记录、性能数据与复跑脚本均已入库。
 - `reference/` 已有 gimpish、Compositor、Photoshop MCP、CLI-Anything、AgentBrush、libvips 和 sharp 的源码。
-- 当前环境能找到 `cargo` 和 `rustc`；尚未安装 `hyperfine` 或 `vips` 命令。方案阶段不安装依赖。
+- 实测环境为 Ubuntu 24.04 / Linux x86_64，Rust 1.98.1；`rust-version = 1.88` 是声明的最低版本，本轮未据此宣称已验证该版本。性能使用 Python/GNU time 采样，未安装或实测 libvips，详见 [性能报告](../../docs/performance.md)。
 
 ## 目标与首版覆盖范围
 
@@ -31,43 +31,61 @@
 | Roadmap | 自动抠图、主体分割、物体移除与修复 | 未来可接入模型；本轮不实现 |
 | Roadmap | 生成式填充与扩图 | 未来可接入生成后端；本轮不实现 |
 
-首版建议先覆盖 8-bit sRGB 的 PNG/JPEG。透明度、EXIF 方向和工作色彩空间必须有明确约定。其他格式、位深或色彩空间应明确处理能力，不能悄悄改变颜色或丢失透明度。
+首版已覆盖明确契约内的 8-bit sRGB PNG/JPEG。透明度、EXIF 方向和工作色彩空间必须有明确约定。其他格式、位深或色彩空间应明确处理能力，不能悄悄改变颜色或丢失透明度。
 
 未来若启用智能编辑，可通过本地运行时或远端服务执行，届时再评估效果、硬件、成本和时延。本轮普通编辑完全独立，不需要模型、模型服务或凭据；能力查询将未来功能与已实现功能明确区分。
 
 兼容性需要单独列矩阵：功能覆盖、参数语义、输出质量、文件保真、执行时延分别验收。当前范围不意味着 Photoshop 每个功能、每个参数和所有 PSD 文件完全兼容。完整 PSD 无损往返、RAW、专业印刷色彩、完整笔刷系统、插件和桌面 GUI 暂列为待确认的扩展范围。
 
-能力查询必须区分已支持、部分支持和尚未实现。生成式操作的效果通过任务结果验收；不能保证与 Photoshop 的专有模型生成相同像素，即便后端提供随机种子也不能跨模型保证一致。
+能力查询必须区分已支持、部分支持和尚未实现。未来生成式操作的效果将通过任务结果验收；不能保证与 Photoshop 的专有模型生成相同像素，即便后端提供随机种子也不能跨模型保证一致。
 
 ## 方案
 
 ### 1. 单操作和多步处理共享接口
 
-以下为拟定接口，尚未实现：
+以下命令已实现；输入素材需存在，输出默认不覆盖已有文件：
 
 ```sh
-pic-cli resize photo.jpg --width 1600 --output resized.jpg
-pic-cli adjust photo.jpg --exposure 0.5 --saturation 1.1 --output adjusted.jpg
-pic-cli composite background.png --overlay subject.png --x 100 --y 80 --opacity 0.8 --output result.png
+pic-cli resize --input photo.jpg --width 1600 --output resized.jpg
+pic-cli adjust --input photo.jpg --exposure 0.5 --saturation 1.1 --output adjusted.jpg
+pic-cli composite --input background.png --overlay subject.png --x 100 --y 80 --opacity 0.8 --output composite.png
 pic-cli run --input photo.jpg --pipeline pipeline.json --output result.jpg --json
 ```
 
 本轮命令只执行明确的直接编辑参数。智能编辑的候选接口与验收条目保留在 `roadmap/`，不进入当前执行队列。
 
-`exposure` 建议使用 EV；`saturation` 建议使用倍率，1 为不变。CLI 和 JSON 必须使用相同语义。多步管线示例：
+`exposure` 使用 EV；`saturation` 使用倍率，1 为不变。CLI 和 JSON 必须使用相同语义。多步管线示例：
 
 ```json
 {
-  "version": 1,
+  "schema_version": 1,
   "operations": [
-    { "op": "resize", "width": 1600 },
-    { "op": "adjust", "exposure": 0.5, "saturation": 1.1 },
-    { "op": "composite", "source": "logo.png", "x": 24, "y": 24, "opacity": 0.8 }
+    {
+      "op": "resize",
+      "op_version": 1,
+      "target": "canvas",
+      "params": {
+        "width": 1600,
+        "height": null,
+        "filter": "bilinear"
+      }
+    },
+    {
+      "op": "adjust",
+      "op_version": 1,
+      "target": "canvas",
+      "params": {
+        "exposure": 0.5,
+        "brightness": 0.0,
+        "contrast": 1.0,
+        "saturation": 1.1
+      }
+    }
   ]
 }
 ```
 
-按数组顺序执行，坐标相对于该步骤的当前画布。只有证明等价的操作才能融合或重排。同一次运行中尽量只解码一次，最终只编码一次；未要求观察或持久化的中间像素保留在内存中。生成预览、检查点和必要的模型结果会产生额外编解码与写入，单独统计耗时。资源路径以管线文件所在目录解析，命令行输入输出路径以当前工作目录解析，并在返回结果中给出实际输出路径。
+按数组顺序执行，坐标相对于该步骤的当前画布。只有证明等价的操作才能融合或重排。一次管线的主输入只解码一次，最终输出只编码一次；图层、蒙版、字体等外部操作数按需读取或解码。未要求持久化的中间像素保留在内存中，预览和检查点会增加读取、计算或写入成本，单独统计。未来模型结果的持久化不属于当前实现。资源路径以管线文件所在目录解析，命令行输入输出路径以当前工作目录解析，并在返回结果中给出实际输出路径。
 
 轻量工程与一次性处理共用操作核心；普通文件处理无需创建工程。工程模式将同一操作类型规范化后记录为 ops，保存跨命令状态与历史，不能依赖上一次 CLI 进程的内存。
 
@@ -84,13 +102,13 @@ pic-cli run --input photo.jpg --pipeline pipeline.json --output result.jpg --jso
 
 #### 2.1 工程布局与资源
 
-拟使用 `.pic` 目录作为工作工程，保存时增量写入，传输打包作为后续便利功能。布局暂定为：
+当前使用 `.pic` 目录作为工作工程，保存时增量写入；工程目录传输归档仍可作为后续便利功能。布局为：
 
 ```text
 project.pic/
   manifest.json    # schema_version、源素材、渲染语义、当前 revision 与历史索引
   ops/             # 按提交保存的不可变操作记录
-  assets/          # 原图、蒙版、字体依赖、生成式编辑的实际结果
+  assets/          # 原图、蒙版和字体依赖；模型结果仅为未来扩展
   checkpoints/     # 指定版本的可恢复状态，可引用共享像素素材
   cache/           # 可重新生成的预览与渲染缓存
 ```
@@ -101,17 +119,26 @@ project.pic/
 
 #### 2.2 Ops、提交与历史
 
-记录通过校验并实际提交成功的语义操作，包含稳定 `op_id`、操作类型与语义版本、输入/输出 revision、目标 ID、补全默认值后的明确参数，以及输入和结果资产引用。CLI 命令字符串、查询、预览和失败请求不进入可重放的编辑序列；执行诊断可单独输出。一个拟定记录示例为：
+记录通过校验并实际提交成功的语义操作，包含稳定 `op_id`、操作类型与语义版本、输入/输出 revision、目标 ID、补全默认值后的明确参数，以及输入和结果资产引用。CLI 命令字符串、查询、预览和失败请求不进入可重放的编辑序列；执行诊断可单独输出。一个已提交操作的结构示例如下；ID 为示意，必须使用实际返回值：
 
 ```json
 {
-  "op_id": "op-003",
-  "op_version": 1,
+  "op_id": "op3",
   "base_revision": "r2",
   "revision": "r3",
-  "op": "adjust",
-  "target": "layer-subject",
-  "params": { "exposure": 0.5, "saturation": 1.0 }
+  "operation": {
+    "op": "adjust",
+    "op_version": 1,
+    "target": "canvas",
+    "params": {
+      "exposure": 0.5,
+      "brightness": 0.0,
+      "contrast": 1.0,
+      "saturation": 1.0
+    }
+  },
+  "input_assets": [],
+  "result_assets": []
 }
 ```
 
@@ -119,7 +146,7 @@ project.pic/
 
 首版对外提供线性历史和撤销/重做，通过恢复旧状态实现，不要求为裁剪、模糊等操作构造逆运算。从旧步骤继续编辑会建立新的当前序列并使原 redo 路径失效；旧的已提交记录保留只读追溯，暂不提供分支命名、分支管理或合并。更改已有步骤的参数应生成新的记录与版本，不能原地改写已经用于预览和分析的 revision。
 
-确定性操作在相同输入和受支持的执行环境、色彩及采样语义下重放。智能编辑记录后端/模型版本、实际参数及后端支持时的 seed，并把实际输出图像或蒙版作为必需资产保存；恢复已提交状态时直接引用该输出，无需重新调用模型。输入、区域、蒙版或参数改变后，该模型结果不能直接复用，需要重新执行或明确选择已保存素材作为新的编辑输入。
+确定性操作在相同输入和受支持的执行环境、色彩及采样语义下重放。未来智能编辑的设计要求是记录后端/模型版本、实际参数及后端支持时的 seed，并把实际输出图像或蒙版作为必需资产保存；恢复已提交状态时直接引用该输出，无需重新调用模型。输入、区域、蒙版或参数改变后，该模型结果不能直接复用，需要重新执行或明确选择已保存素材作为新的编辑输入。
 
 #### 2.3 检查点与缓存
 
@@ -127,22 +154,22 @@ Ops 记录解决复现和继续编辑，检查点与缓存解决重复计算。�
 
 缓存身份覆盖输入内容与操作前缀、规范化参数、全部素材依赖、引擎/操作语义版本、色彩和采样设置；预览缓存还需包含目标、裁剪区域及分辨率。修改第 18 步可从第 17 步的有效检查点继续；修改第 3 步时，第 3 步及依赖它的后续缓存失效。首版按线性前缀保守重算，图层级依赖分析和分块更新后续按实测引入。
 
-检查点或缓存缺失时，从较早的有效检查点或原始素材重放。必需的原图、蒙版和模型输出保存在 `assets/`，不能随缓存预算淘汰。已持久化的像素检查点必须保留当前执行核心的精度、颜色和 alpha 约定，不能因中途量化改变后续结果；低分辨率预览不能作为全分辨率导出的检查点。即使执行器融合了操作，也要保留逻辑 ops 边界，在请求某一步预览时能重新求值到该步骤。
+检查点或缓存缺失时，从较早的有效检查点或原始素材重放。原图、蒙版、字体为必需资产，保存在 `assets/`，不能因缓存预算而淘汰；未来模型输出也应遵守这一规则。已持久化的像素检查点必须保留当前执行核心的精度、颜色和 alpha 约定，不能因中途量化改变后续结果；低分辨率预览不能作为全分辨率导出的检查点。即使执行器融合了操作，也要保留逻辑 ops 边界，在请求某一步预览时能重新求值到该步骤。
 
 #### 2.4 Agent 观察与继续编辑
 
 工程提供结构查询与图像预览两个入口。结构查询返回指定版本的画布信息、目标 ID、图层/蒙版状态与操作参数；预览支持整图和画布局部，P1 增加单图层与蒙版。预览和最终导出共享渲染语义，预览可以缩小尺寸，边缘与细节分析可请求原尺寸局部。
 
-每次预览的 JSON 返回图像路径、`revision`、对应步骤/目标 ID、画布尺寸、裁剪区域、预览尺寸及预览像素到画布坐标的映射。局部区域默认使用该版本的画布坐标；图层局部坐标需要显式变换。分析结论关联所观察的 revision，后续修改可携带 `expected_revision`，当前版本已变化时返回冲突并要求调用方重新读取状态，避免把旧图上的选区应用到新状态。
+每次预览的 JSON 返回图像路径、`revision`、对应步骤/目标 ID、画布尺寸、裁剪区域、预览尺寸及预览像素到画布坐标的映射。局部区域默认使用该版本的画布坐标；图层局部坐标需要显式变换。分析结论关联所观察的 revision，后续修改必须携带 `expected_revision`，当前版本已变化时返回冲突并要求调用方重新读取状态，避免把旧图上的选区应用到新状态。
 
-拟定的基本流程如下，命令尚未实现，`r0`、`r3` 等为实际返回 ID 的示意：
+基本流程如下。此处使用上面的两步 pipeline.json；revision 必须从实际响应读取。followup.json 为调用方按观察结果提供的新管线，`--revision r1` 指定旧步骤起点，`--expect-revision r2` 仍校验当前指针：
 
 ```sh
 pic-cli project create --input photo.jpg --output work.pic --json
 pic-cli project apply work.pic --pipeline pipeline.json --expect-revision r0 --json
-pic-cli project inspect work.pic --revision r3 --json
-pic-cli project preview work.pic --revision r3 --region 100,80,640,480 --output inspect.png --json
-pic-cli project apply work.pic --pipeline followup.json --expect-revision r3 --json
+pic-cli project inspect work.pic --revision r1 --json
+pic-cli project preview work.pic --revision r1 --width 640 --output inspect.png --json
+pic-cli project apply work.pic --pipeline followup.json --revision r1 --expect-revision r2 --json
 pic-cli project export work.pic --output result.png --json
 ```
 
@@ -150,7 +177,7 @@ P0 必须跑通单图“编辑 → 持久化 → 退出 CLI → 预览并分析 
 
 ### 3. Rust 实现与引擎选择
 
-拟建立 `pic-core` 处理库与 `pic-cli` 命令入口。核心按 codec、operation、pipeline、composite、document 分模块；document 管理工程结构、ops 历史、资产引用和检查点，pipeline 负责重放与缓存复用。CLI 负责参数解析、结构化输出和退出码。智能编辑后端接口留到未来功能启动后再实现，不作为当前架构交付要求。
+已建立 `pic-core` 处理库与 `pic-cli` 命令入口。核心按 codec、operation、pipeline、document、project 等模块组织；document 管理可编辑图层与统一渲染，project 管理不可变 ops、素材、历史、检查点和预览，pipeline 使用同一操作核心执行和重放。CLI 负责参数解析、结构化输出和退出码。智能编辑后端接口留到未来功能启动后再实现，不作为当前架构交付要求。
 
 首轮验证以 `image` 处理 PNG/JPEG 读写、`fast_image_resize` 处理缩放为起点；自有操作共享统一的像素表示和参数类型。按需评估 `imageproc`，避免为了少量功能引入无关处理链。高成本像素运算再根据实测加入 SIMD 或受控的线程并行。
 
@@ -165,9 +192,9 @@ libvips 作为性能对照及候选原生后端，在相同输出尺寸、采样
 ### 4. 速度设计
 
 - 编译后的 CLI 直接调用处理核心；普通操作启动路径只加载所需组件。
-- 解码后的图片在操作间复用，减少整图复制和中间文件；点操作按等价性合并像素遍历。
+- 当前通过 Arc 共享像素、精确的 8-bit sRGB 查表，以及复用管线/检查点已经产生的画布减少开销；本轮没有融合或重排操作。点操作融合仍须保持每步 f32 舍入与可观察边界后再评估。
 - 缩放与合成正确处理 alpha，避免透明边缘出现黑边；先固定颜色与采样语义，再比较性能。
-- 并行策略限制总线程数，避免“批量图片并行 × 每张图并行”造成过度争抢；小图片保留低开销路径。
+- 本轮没有新增线程池或启用 Rayon；性能采样逐一启动 CLI 并固定单个逻辑 CPU。更广的并行策略留待相同语义、质量和资源预算下的后续测量。
 - 编码纳入优化范围。PNG 的压缩等级影响耗时和文件大小，JPEG 质量影响耗时与输出质量，两者分别定义参数和基准。
 - 图层工程采用素材缓存；分块、受影响区域更新与不可变快照参考 Compositor，具体优化顺序取决于实际内存和处理瓶颈。
 - 工程模式先复用有效检查点与操作前缀，缓存未命中再重放；分别报告历史读取、缓存命中、实际重算步骤和持久化耗时。记录 ops 不作为像素处理加速的依据，增加检查点后的收益需要覆盖其读写与编码成本。
@@ -185,7 +212,7 @@ libvips 作为性能对照及候选原生后端，在相同输出尺寸、采样
 
 首先登记基准机器的 CPU、内存、操作系统、磁盘、线程数、编译器和构建配置。使用 release 构建和固定素材，分别记录新进程启动、文件缓存状态、解码、处理、编码、总耗时与峰值内存。至少重复 30 次，报告 p50 与 p95。
 
-下列为待基准确认的建议目标，不是当前性能承诺：
+下列为原建议目标，不是跨机器的性能承诺。已完成前后各 16×30 次测量；优化后 p95 为启动 3.78 ms、1080p 缩放调色 252.64 ms、4K 调整 1171.49 ms，4K 仍超过 1 秒建议值。完整条件、原始数据与未达标原因见 [性能报告](../../docs/performance.md)。
 
 | 工作负载 | 建议端到端 p95 目标 |
 | --- | --- |
@@ -222,7 +249,7 @@ libvips 作为性能对照及候选原生后端，在相同输出尺寸、采样
 
 ## 校验
 
-仓库目前没有可运行的 Rust 校验目标。建立工程后计划执行：
+每个任务集成前均执行以下仓库校验；额外的像素、历史、性能和打包证据见文末：
 
 ```sh
 cargo fmt --all -- --check
@@ -254,8 +281,8 @@ P0 里程碑：导入单图 → 执行裁剪和调色并记录 ops → 保存检
 - 模型选择、GPU、服务凭据与成本仅是未来智能功能的开放问题，不阻塞本轮直接编辑。
 - Rust 本身不能保证低延迟；编解码、内存带宽、算法、复制和启动路径都需测量。
 - Photoshop 的调色、混合与字体行为存在具体语义；以本项目明确的参数和输出规范验收，兼容性要求需单独定义。
-- 中文文字需要字体选择与排版能力，不能把简单字符绘制当作完整文字排版。
-- 4K RGBA8 单张像素缓冲约 31.6 MiB，多图层与浮点中间缓冲会显著增加内存；建立工程缓存和历史前先明确预算。
+- 当前文字使用真实字体 shaping 与覆盖率栅格化，但仅支持水平 LTR 的拉丁、希腊或西里尔文字，每行限定一种文字体系，支持 LF 分行；不支持中文、RTL、自动换行或字体回退，缺字/不支持的排版明确报错。
+- 4K RGBA8 单张像素缓冲约 31.6 MiB，RGBA32F 约 126.6 MiB。默认工作准入预算 1 GiB、内存缓存 256 MiB、磁盘缓存 512 MiB；完整双层 4K 检查点默认回退，实测命中场景显式提高缓存内存预算。准入预算不是进程 RSS 硬上限。
 - 长历史的冷重放成本、检查点读写与磁盘占用存在取舍；首版采用有预算的按需检查点和线性前缀复用，分块与更细粒度依赖优化由实测决定。
 - 跨引擎/操作版本、字体变化和模型重调用可能改变结果；格式需明确可重放的语义边界，保留必需资产，并提供显式迁移或不兼容错误。
 - 换图复用 ops 的几何与语义适用性取决于输入；首版要求显式绑定坐标、目标和蒙版，不把自动内容适配或分支合并作为隐含承诺。
@@ -269,3 +296,31 @@ P0 里程碑：导入单图 → 执行裁剪和调色并记录 ops → 保存检
 - [sharp 处理管线](../../reference/sharp/src/pipeline.cc)、[libvips](../../reference/libvips/README.md)：解码、处理与编码组织及原生图像处理实现。
 - [Photoshop MCP 架构](../../reference/photoshop-mcp/docs/architecture.md)：状态、执行、预览和错误恢复。
 - [AgentBrush 结果结构](../../reference/agentbrush/src/agentbrush/core/result.py)：统一输出与验证信息。
+
+## 执行结果（2026-09-19）
+
+本轮 9 项直接编辑任务全部完成并归档。全部通过 Herdr 独立 worktree 的 Codex `gpt-6-astra / max` 执行；各任务由原执行 agent rebase 到 main，协调器独立校验同一提交后逐项 fast-forward 合并。每项保留一个任务提交，所有本轮 agent、Herdr workspace、worktree 和任务分支均已清理。
+
+| 任务与验收归档 | 合入提交 | 状态 |
+| --- | --- | --- |
+| [01 基础 workspace 与契约](todos/done/01-foundation.md) | `ce6c5c6` | 已完成 |
+| [02 几何与 PNG/JPEG 编解码](todos/done/02-geometry-codecs.md) | `55adaf6` | 已完成 |
+| [03 调色与滤镜](todos/done/03-adjustments-filters.md) | `adbd341` | 已完成 |
+| [04 ops 工程与历史](todos/done/04-project-history.md) | `533f560` | 已完成 |
+| [05 重放、预览与模板](todos/done/05-replay-preview.md) | `090d0ed` | 已完成 |
+| [06 图层、蒙版与选区](todos/done/06-layers-masks.md) | `0a5591b` | 已完成 |
+| [07 组、剪贴、文字与调整层](todos/done/07-groups-text-adjustment.md) | `bbd387f` | 已完成 |
+| [11 性能实测与优化](todos/done/11-core-performance.md) | `853765e` | 已完成 |
+| [12 agent 文档、示例与打包](todos/done/12-agent-packaging.md) | `0851638` | 已完成 |
+
+交付入口：[README](../../README.md)、[agent 执行指南](../../docs/agent-guide.md)、[JSON 示例](../../examples/README.md)、[错误与恢复](../../docs/errors.md)、[构建/安装/打包](../../docs/packaging.md)。当前可发现 30 个版本化操作与 48 项命令；完整功能边界以能力查询和各契约为准。
+
+- 仓库校验：每项集成后独立通过 fmt、clippy `-D warnings`、workspace tests、release build 和 diff 检查；最终 Rust 测试为 129 项。主工作区再次执行 `cargo build --release --locked`，保留 `target/release/pic-cli`（0.1.0）。
+- 性能：前后各 16×30 次正式新进程采样，共 960 次，另有 32 次预热。原始数据、运行条件和复跑脚本已入库。启动 p95 3.78 ms、1080p 缩放调色 252.64 ms；4K 调整 1171.49 ms，仍未达到原建议 1 秒。4K 工程完整重放 p95 从 5172.67 降到 3425.70 ms；没有所有负载都变快、降低 RSS 或优于其他后端的承诺。见 [性能报告](../../docs/performance.md)。
+- 像素与历史：性能阶段 45 组解码比较零差异，r0–r20 文档和历史一致；另用保留的旧版分组/文字/蒙版工程，独立核对 r0/r5/r9/r10、完整检查点浮点字节和继续编辑结果。两处性能优化保持操作、颜色、alpha 与逻辑步骤语义。
+- 打包：在干净代码提交 `0851638` 的主工作区重新执行 `python3 scripts/package.py`，对实际 tar.gz 解包后运行指南和复制安装。58 份指南 JSON 回执、48 项命令帮助、10 对解码像素、错误恢复、移走外部素材后的可编辑工程及完整 4K 双层里程碑均通过。协调器另验证含空格的包路径、全部文件摘要与旧工程兼容性。见 [打包验收](../../docs/packaging-validation.md)。
+- 收尾：本方案的当前命令、JSON/ops 结构、仓库状态与性能说明已对齐实现；其中 10 条示例命令以及旧步骤续编/旧历史读取已在独立临时目录运行通过。
+
+当前工作区保留的最终安装包：[Linux x86_64 安装包](../../target/dist/pic-cli-gngd_tyt/pic-cli-0.1.0-x86_64-unknown-linux-gnu.tar.gz)；本次完整证据：[verification.json](../../target/dist/pic-cli-gngd_tyt/verification/verification.json)。压缩包 SHA-256：`bede0d77be35492da5cd9b14663b19da6369014c1a094ec64ee7837a62da0e46`。这些是本次本地生成物，新的 checkout 应按打包指南重建，不依赖原任务 worktree 的路径；源码与验收文档已提交到 Git。
+
+用户明确延期的 08/09/10/13 四项仍保留在 [roadmap](roadmap/README.md)，没有模型选型、后端接入或模型调用，也不作为本轮未完成项。已验证范围是当前 Linux GNU 平台和明确的 PNG/JPEG、文字/模板子集；中文排版、其他平台/MSRV、PSD 等限制已在能力与打包文档中说明。
