@@ -29,6 +29,7 @@ use serde::Serialize;
 
 mod layers;
 mod project;
+mod typography;
 
 #[derive(Parser)]
 #[command(

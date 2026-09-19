@@ -11,6 +11,8 @@ use serde_json::{Value, json};
 mod layers;
 #[path = "project/replay.rs"]
 mod replay;
+#[path = "project/typography.rs"]
+mod typography;
 
 fn binary() -> PathBuf {
     std::env::var_os("PIC_CLI_BIN")

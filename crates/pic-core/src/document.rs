@@ -1,4 +1,6 @@
 //! Shared pixel state and identities. Persistent assets and ops live in `project`.
+mod hierarchy;
+mod render;
 
 use std::sync::Arc;
 
@@ -91,6 +93,20 @@ use std::collections::BTreeSet;
 
 pub const BASE_LAYER_ID: &str = "base";
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum LayerKind {
+    #[default]
+    Raster,
+    Group,
+    Text {
+        params: crate::text::TextParams,
+    },
+    Adjustment {
+        params: crate::operation::layers::AdjustmentParams,
+    },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Region {
@@ -147,6 +163,9 @@ pub struct Layer {
     pub raster: Raster,
     /// Coverage is in alpha, RGB is zero. Same local dimensions as raster.
     pub mask: Option<Raster>,
+    pub kind: LayerKind,
+    pub parent: Option<TargetId>,
+    pub clip: Option<TargetId>,
 }
 impl Layer {
     pub fn new(id: TargetId, name: String, raster: Raster) -> Self {
@@ -159,6 +178,9 @@ impl Layer {
             blend: BlendMode::Normal,
             transform: Transform::default(),
             mask: None,
+            kind: LayerKind::Raster,
+            parent: None,
+            clip: None,
         }
     }
     pub fn mapping(&self) -> Affine {
@@ -167,6 +189,9 @@ impl Layer {
     }
     pub fn info(&self) -> LayerInfo {
         LayerInfo {
+            kind: self.kind.clone(),
+            parent: self.parent.clone(),
+            clip: self.clip.clone(),
             id: self.id.clone(),
             name: self.name.clone(),
             visible: self.visible,
@@ -188,6 +213,9 @@ impl Layer {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerInfo {
+    pub kind: LayerKind,
+    pub parent: Option<TargetId>,
+    pub clip: Option<TargetId>,
     pub id: TargetId,
     pub name: String,
     pub visible: bool,
@@ -241,7 +269,18 @@ impl Document {
         DocumentInfo {
             width: self.width,
             height: self.height,
-            layers: self.layers.iter().map(Layer::info).collect(),
+            layers: self
+                .layers
+                .iter()
+                .map(|layer| {
+                    let mut info = layer.info();
+                    if let Ok(mapping) = self.world_mapping(&layer.id) {
+                        info.layer_to_canvas = mapping;
+                        info.canvas_to_layer = mapping.inverse();
+                    }
+                    info
+                })
+                .collect(),
             selection: self.selection.clone(),
             layered: self.layered,
             used_layer_ids: self.used_layer_ids.clone(),
@@ -250,7 +289,7 @@ impl Document {
     pub fn layer(&self, id: &TargetId) -> Result<&Layer> {
         Ok(&self.layers[self.index(id)?])
     }
-    fn index(&self, id: &TargetId) -> Result<usize> {
+    pub(crate) fn index(&self, id: &TargetId) -> Result<usize> {
         self.layers.iter().position(|l| &l.id == id).ok_or_else(|| {
             PicError::new(
                 ErrorCode::InvalidTarget,
@@ -296,7 +335,31 @@ impl Document {
             if let Some(mask) = &layer.mask {
                 Self::check_mask(&layer.raster, mask)?;
             }
+            match &layer.kind {
+                LayerKind::Text { params } => {
+                    params.validate()?;
+                    if params.width != layer.raster.width()
+                        || params.height != layer.raster.height()
+                    {
+                        return Err(PicError::new(
+                            ErrorCode::InvalidProject,
+                            "text box and raster dimensions differ",
+                        ));
+                    }
+                }
+                LayerKind::Adjustment { params } => {
+                    params.operation()?;
+                    if layer.blend != BlendMode::Normal {
+                        return Err(PicError::new(
+                            ErrorCode::InvalidArgument,
+                            "adjustment layers require normal blend; opacity controls interpolation",
+                        ));
+                    }
+                }
+                _ => (),
+            }
         }
+        self.validate_hierarchy(limits)?;
         if let Some(selection) = &self.selection {
             selection.validate()?;
             if selection.space != TargetId::canvas() {
@@ -311,6 +374,9 @@ impl Document {
                 || !self.layers[0].visible
                 || self.layers[0].opacity != 1.0
                 || self.layers[0].blend != BlendMode::Normal
+                || !matches!(self.layers[0].kind, LayerKind::Raster)
+                || self.layers[0].parent.is_some()
+                || self.layers[0].clip.is_some()
                 || self.layers[0].raster.width() != self.width
                 || self.layers[0].raster.height() != self.height
                 || self.selection.is_some())
@@ -351,50 +417,7 @@ impl Document {
         if target == &TargetId::canvas() && !self.layered {
             return Ok(self.layers[0].raster.clone());
         }
-        let (chosen, mask_only) = if target == &TargetId::canvas() {
-            (None, false)
-        } else if let Some(id) = target.0.strip_prefix("mask:") {
-            let layer = self.layer(&TargetId(id.into()))?;
-            if layer.mask.is_none() {
-                return Err(PicError::new(ErrorCode::InvalidTarget, "layer has no mask"));
-            }
-            (Some(layer), true)
-        } else {
-            (Some(self.layer(target)?), false)
-        };
-        let layers: Vec<_> =
-            chosen.map_or_else(|| self.layers.iter().collect(), |layer| vec![layer]);
-        let layers: Vec<_> = layers
-            .into_iter()
-            .map(|layer| (layer, layer.mapping().inverse()))
-            .collect();
-        let count = limits.check_dimensions(self.width, self.height)?;
-        let mut pixels = Vec::new();
-        pixels.try_reserve_exact(count).map_err(|_| {
-            PicError::new(ErrorCode::ResourceLimit, "cannot allocate composite pixels")
-        })?;
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let mut p = [0.0; 4];
-                for &(layer, inverse) in &layers {
-                    if !mask_only && !layer.visible {
-                        continue;
-                    }
-                    let s = composite::sample(
-                        layer,
-                        inverse.map([f64::from(x) + 0.5, f64::from(y) + 0.5]),
-                        mask_only,
-                    );
-                    if mask_only {
-                        p = s;
-                    } else {
-                        p = composite::blend(p, s, layer.opacity, layer.blend);
-                    }
-                }
-                pixels.push(p);
-            }
-        }
-        Raster::from_linear_rgba(self.width, self.height, pixels, limits)
+        self.render_layers(target, limits)
     }
     pub fn target_mapping(&self, target: &TargetId) -> Result<Option<Affine>> {
         if target == &TargetId::canvas() {
@@ -405,7 +428,7 @@ impl Document {
         if target.0.starts_with("mask:") && layer.mask.is_none() {
             return Err(PicError::new(ErrorCode::InvalidTarget, "layer has no mask"));
         }
-        Ok(Some(layer.mapping()))
+        Ok(Some(self.world_mapping(&layer.id)?))
     }
 
     /// Execute a logical operation. Callers own/discard the state on failure before publication.
@@ -416,9 +439,12 @@ impl Document {
         resources: &crate::pipeline::ResourceResolver,
         limits: &ResourceLimits,
         load: &mut impl FnMut(&str, bool) -> Result<Raster>,
+        load_font: &mut impl FnMut(&str) -> Result<Vec<u8>>,
     ) -> Result<()> {
         match op {
-            Operation::Layer(action) => self.apply_layer(target, action, load)?,
+            Operation::Layer(action) => {
+                self.apply_layer(target, action, limits, load, load_font)?
+            }
             _ if target == &TargetId::canvas() && !self.layered => {
                 Self::apply_raster(&mut self.layers[0].raster, op, resources, limits, load)?;
                 self.width = self.layers[0].raster.width();
@@ -467,6 +493,12 @@ impl Document {
             }
             _ => {
                 let i = self.index(target)?;
+                if !matches!(self.layers[i].kind, LayerKind::Raster) {
+                    return Err(PicError::new(
+                        ErrorCode::InvalidTarget,
+                        "local pixel edits require a raster layer; use text_set, adjustment_set or layer_transform for editable generated layers",
+                    ));
+                }
                 let geometry = matches!(
                     op,
                     Operation::Crop(_)
@@ -491,12 +523,11 @@ impl Document {
                 Self::apply_raster(&mut edited, op, resources, limits, load)?;
                 if let Some(selection) = &self.selection {
                     let mapping = if selection.space == TargetId::canvas() {
-                        self.layers[i].mapping()
+                        self.world_mapping(&self.layers[i].id)?
                     } else {
-                        self.layer(&selection.space)?
-                            .mapping()
+                        self.world_mapping(&selection.space)?
                             .inverse()
-                            .then(self.layers[i].mapping())
+                            .then(self.world_mapping(&self.layers[i].id)?)
                     };
                     let old = &self.layers[i].raster;
                     let pixels = edited
@@ -526,6 +557,9 @@ impl Document {
     }
     fn translate_canvas(&mut self, dx: f64, dy: f64) {
         for layer in &mut self.layers {
+            if layer.parent.is_some() {
+                continue;
+            }
             layer.transform.x += dx;
             layer.transform.y += dy;
         }
@@ -569,9 +603,39 @@ impl Document {
         &mut self,
         target: &TargetId,
         op: &LayerOperation,
+        limits: &ResourceLimits,
         load: &mut impl FnMut(&str, bool) -> Result<Raster>,
+        load_font: &mut impl FnMut(&str) -> Result<Vec<u8>>,
     ) -> Result<()> {
         match op {
+            LayerOperation::GroupAdd(p) => {
+                let mut layer = Layer::new(
+                    p.id.clone(),
+                    p.name.clone(),
+                    Self::solid(p.width, p.height, [0.0; 4], limits)?,
+                );
+                layer.kind = LayerKind::Group;
+                self.insert_layer(layer)?;
+            }
+            LayerOperation::TextAdd(p) => {
+                let raster = crate::text::render(&p.text, &load_font(&p.text.font)?, limits)?;
+                let mut layer = Layer::new(p.id.clone(), p.name.clone(), raster);
+                layer.kind = LayerKind::Text {
+                    params: p.text.clone(),
+                };
+                self.insert_layer(layer)?;
+            }
+            LayerOperation::AdjustmentAdd(p) => {
+                let mut layer = Layer::new(
+                    p.id.clone(),
+                    p.name.clone(),
+                    Self::solid(p.width, p.height, [0.0, 0.0, 0.0, 1.0], limits)?,
+                );
+                layer.kind = LayerKind::Adjustment {
+                    params: p.adjustment.clone(),
+                };
+                self.insert_layer(layer)?;
+            }
             LayerOperation::Add(p) => {
                 if self.used_layer_ids.contains(&p.id.0) {
                     return Err(PicError::new(
@@ -607,6 +671,34 @@ impl Document {
             _ => {
                 let i = self.index(target)?;
                 match op {
+                    LayerOperation::Parent(p) => {
+                        self.layers[i].parent = p.parent.clone();
+                        self.reorder(target, p.before.as_ref())?;
+                    }
+                    LayerOperation::Clip(p) => self.layers[i].clip = p.base.clone(),
+                    LayerOperation::TextSet(p) => {
+                        if !matches!(self.layers[i].kind, LayerKind::Text { .. }) {
+                            return Err(PicError::new(
+                                ErrorCode::InvalidTarget,
+                                "text_set requires a text layer",
+                            ));
+                        }
+                        let raster = crate::text::render(p, &load_font(&p.font)?, limits)?;
+                        if let Some(mask) = &self.layers[i].mask {
+                            Self::check_mask(&raster, mask)?;
+                        }
+                        self.layers[i].raster = raster;
+                        self.layers[i].kind = LayerKind::Text { params: p.clone() };
+                    }
+                    LayerOperation::AdjustmentSet(p) => {
+                        if !matches!(self.layers[i].kind, LayerKind::Adjustment { .. }) {
+                            return Err(PicError::new(
+                                ErrorCode::InvalidTarget,
+                                "adjustment_set requires an adjustment layer",
+                            ));
+                        }
+                        self.layers[i].kind = LayerKind::Adjustment { params: p.clone() };
+                    }
                     LayerOperation::Set(p) => {
                         let l = &mut self.layers[i];
                         if let Some(v) = &p.name {
@@ -630,35 +722,63 @@ impl Document {
                     }
                     LayerOperation::MaskRemove => self.layers[i].mask = None,
                     LayerOperation::Remove => {
+                        if self.layers.iter().any(|l| {
+                            l.parent.as_ref() == Some(target) || l.clip.as_ref() == Some(target)
+                        }) {
+                            return Err(PicError::new(
+                                ErrorCode::InvalidHierarchy,
+                                "reparent children and detach clipping dependents before removing their target",
+                            ));
+                        }
                         self.layers.remove(i);
                         if self.selection.as_ref().is_some_and(|s| &s.space == target) {
                             self.selection = None;
                         }
                     }
                     LayerOperation::Reorder(p) => {
-                        if p.before.as_ref() == Some(target) {
-                            return Err(PicError::new(
-                                ErrorCode::InvalidTarget,
-                                "cannot reorder a layer relative to itself",
-                            ));
-                        }
-                        if let Some(before) = &p.before {
-                            self.index(before)?;
-                        }
-                        let layer = self.layers.remove(i);
-                        let next = p
-                            .before
-                            .as_ref()
-                            .map(|id| self.index(id))
-                            .transpose()?
-                            .unwrap_or(self.layers.len());
-                        self.layers.insert(next, layer);
+                        self.reorder(target, p.before.as_ref())?;
                     }
                     _ => unreachable!(),
                 }
             }
         }
         self.layered = true;
+        Ok(())
+    }
+
+    fn insert_layer(&mut self, layer: Layer) -> Result<()> {
+        if !self.used_layer_ids.insert(layer.id.0.clone()) {
+            return Err(PicError::new(
+                ErrorCode::InvalidTarget,
+                "layer ID has already been used in this history",
+            ));
+        }
+        self.layers.push(layer);
+        Ok(())
+    }
+
+    fn reorder(&mut self, target: &TargetId, before: Option<&TargetId>) -> Result<()> {
+        let index = self.index(target)?;
+        if before == Some(target) {
+            return Err(PicError::new(
+                ErrorCode::InvalidTarget,
+                "cannot reorder a layer relative to itself",
+            ));
+        }
+        if let Some(before) = before
+            && self.layer(before)?.parent != self.layers[index].parent
+        {
+            return Err(PicError::new(
+                ErrorCode::InvalidHierarchy,
+                "before must name a sibling in the destination group",
+            ));
+        }
+        let layer = self.layers.remove(index);
+        let next = before
+            .map(|id| self.index(id))
+            .transpose()?
+            .unwrap_or(self.layers.len());
+        self.layers.insert(next, layer);
         Ok(())
     }
 }

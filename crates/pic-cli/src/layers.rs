@@ -81,7 +81,7 @@ impl EditArgs {
         )
         .map(|value| Data::ProjectChange(Box::new(value)))
     }
-    fn layer(
+    pub(super) fn layer(
         self,
         target: String,
         operation: LayerOperation,
@@ -95,6 +95,26 @@ impl EditArgs {
 }
 #[derive(Subcommand)]
 pub(super) enum LayerCommand {
+    /// Move to a group's top (or root when --parent is omitted), preserving local transform
+    Parent {
+        #[command(flatten)]
+        edit: EditArgs,
+        #[arg(long)]
+        target: String,
+        #[arg(long)]
+        parent: Option<String>,
+        #[arg(long)]
+        before: Option<String>,
+    },
+    /// Multiply alpha by a lower sibling's effective alpha; omit --base to detach
+    Clip {
+        #[command(flatten)]
+        edit: EditArgs,
+        #[arg(long)]
+        target: String,
+        #[arg(long)]
+        base: Option<String>,
+    },
     /// Add an independent image above existing layers; caller supplies a new stable ID
     Add {
         #[command(flatten)]
@@ -161,6 +181,28 @@ pub(super) enum LayerCommand {
 impl LayerCommand {
     pub fn execute(self, limits: &ResourceLimits, diagnostics: &mut Diagnostics) -> Result<Data> {
         match self {
+            Self::Parent {
+                edit,
+                target,
+                parent,
+                before,
+            } => edit.layer(
+                target,
+                LayerOperation::Parent(pic_core::operation::layers::ParentParams {
+                    parent: parent.map(TargetId),
+                    before: before.map(TargetId),
+                }),
+                limits,
+                diagnostics,
+            ),
+            Self::Clip { edit, target, base } => edit.layer(
+                target,
+                LayerOperation::Clip(pic_core::operation::layers::ClipParams {
+                    base: base.map(TargetId),
+                }),
+                limits,
+                diagnostics,
+            ),
             Self::Add {
                 edit,
                 id,

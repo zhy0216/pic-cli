@@ -17,8 +17,7 @@ use super::{
 
 // Bump on any decoder, sampling, color, alpha or evaluation change affecting pixels.
 // Operation versions and explicit filter parameters are also included in each prefix.
-const RENDER_SEMANTICS: &str =
-    "pic-render-v1:image-0.25.10:fir-5.5.0:geometry-v1:adjustments-v1:layers-v1";
+const RENDER_SEMANTICS: &str = "pic-render-v2:image-0.25.10:fir-5.5.0:geometry-v1:adjustments-v1:layers-v2:isolated-groups-v1:clip-v1:adjustment-scopes-v1:text-v1:rustybuzz-0.20.1:ab_glyph-0.2.32:unicode-script-0.5.8";
 const MAGIC: &[u8; 8] = b"PICFLT01";
 const OVERHEAD: u64 = 120; // magic + key + four dimensions + SHA-256
 

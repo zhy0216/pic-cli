@@ -198,7 +198,7 @@ fn layered_checkpoints_preserve_all_float_bits_metadata_masks_and_future_edits()
             .join(format!("{}.bin", checkpoint.key)),
     )
     .unwrap();
-    assert_eq!(&bytes[..8], b"PICDOC02");
+    assert_eq!(&bytes[..8], b"PICDOC03");
     let restored = open(&path)
         .restore(None, &mut Diagnostics::default())
         .unwrap();

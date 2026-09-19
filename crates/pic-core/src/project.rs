@@ -323,9 +323,12 @@ impl Project {
                     &self.limits,
                 )?;
                 document = pipeline
-                    .execute_document(document, &self.limits, &mut |source, mask| {
-                        self.load_operand(source, mask, &self.limits)
-                    })?
+                    .execute_document(
+                        document,
+                        &self.limits,
+                        &mut |source, mask| self.load_operand(source, mask, &self.limits),
+                        &mut |source| self.load_font(source, &self.limits),
+                    )?
                     .document;
                 replay
                     .recomputed_revisions
@@ -442,9 +445,12 @@ impl Project {
         let execution_limits = pipeline.effective_limits(limits);
         let (pipeline, dependencies) = self.bind_pipeline(pipeline, diagnostics)?;
         let execution = timed(&mut diagnostics.timings.process_ms, || {
-            pipeline.execute_document(restored.document, limits, &mut |source, mask| {
-                self.load_operand(source, mask, &execution_limits)
-            })
+            pipeline.execute_document(
+                restored.document,
+                limits,
+                &mut |source, mask| self.load_operand(source, mask, &execution_limits),
+                &mut |source| self.load_font(source, &execution_limits),
+            )
         })?;
         if execution.steps.is_empty() {
             return Err(PicError::new(

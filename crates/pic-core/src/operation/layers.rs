@@ -42,9 +42,100 @@ pub struct CompositeParams {
     pub transform: Transform,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GroupParams {
+    pub id: TargetId,
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ParentParams {
+    pub parent: Option<TargetId>,
+    pub before: Option<TargetId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClipParams {
+    pub base: Option<TargetId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TextAddParams {
+    pub id: TargetId,
+    pub name: String,
+    pub text: crate::text::TextParams,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdjustmentParams {
+    pub op: String,
+    pub params: serde_json::Value,
+}
+
+impl AdjustmentParams {
+    pub fn operation(&self) -> Result<super::Operation> {
+        if !matches!(
+            self.op.as_str(),
+            "adjust" | "levels" | "curves" | "grayscale" | "invert"
+        ) {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                "adjustment layers accept adjust, levels, curves, grayscale or invert only",
+            ));
+        }
+        super::OperationSpec {
+            op: self.op.clone(),
+            op_version: super::OP_VERSION,
+            target: TargetId::canvas(),
+            params: self.params.clone(),
+        }
+        .validate()
+    }
+
+    pub(crate) fn apply(
+        &self,
+        raster: &crate::document::Raster,
+        limits: &crate::limits::ResourceLimits,
+    ) -> Result<crate::document::Raster> {
+        use super::{Operation, adjustments};
+        match self.operation()? {
+            Operation::Adjust(p) => adjustments::adjust(raster, &p, limits),
+            Operation::Levels(p) => adjustments::levels(raster, &p, limits),
+            Operation::Curves(p) => adjustments::curves(raster, &p, limits),
+            Operation::Grayscale => adjustments::grayscale(raster, limits),
+            Operation::Invert => adjustments::invert(raster, limits),
+            _ => unreachable!("validated point adjustment"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdjustmentAddParams {
+    pub id: TargetId,
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub adjustment: AdjustmentParams,
+}
+
 #[derive(Debug, Clone)]
 pub enum LayerOperation {
     Add(LayerAddParams),
+    GroupAdd(GroupParams),
+    Parent(ParentParams),
+    Clip(ClipParams),
+    TextAdd(TextAddParams),
+    TextSet(crate::text::TextParams),
+    AdjustmentAdd(AdjustmentAddParams),
+    AdjustmentSet(AdjustmentParams),
     Set(LayerSetParams),
     Transform(Transform),
     Reorder(ReorderParams),
@@ -102,6 +193,26 @@ impl CompositeParams {
 impl LayerOperation {
     pub fn validate(&self) -> Result<()> {
         match self {
+            Self::GroupAdd(p) => {
+                valid_id(&p.id)?;
+                dimensions(p.width, p.height)
+            }
+            Self::Parent(p) => {
+                p.parent.as_ref().map_or(Ok(()), valid_id)?;
+                p.before.as_ref().map_or(Ok(()), valid_id)
+            }
+            Self::Clip(p) => p.base.as_ref().map_or(Ok(()), valid_id),
+            Self::TextAdd(p) => {
+                valid_id(&p.id)?;
+                p.text.validate()
+            }
+            Self::TextSet(p) => p.validate(),
+            Self::AdjustmentAdd(p) => {
+                valid_id(&p.id)?;
+                dimensions(p.width, p.height)?;
+                p.adjustment.operation().map(|_| ())
+            }
+            Self::AdjustmentSet(p) => p.operation().map(|_| ()),
             Self::Add(p) => {
                 valid_id(&p.id)?;
                 source(&p.source)
@@ -117,6 +228,13 @@ impl LayerOperation {
     pub(crate) fn specification(&self) -> (&'static str, serde_json::Value) {
         use serde_json::json;
         match self {
+            Self::GroupAdd(p) => ("group_add", json!(p)),
+            Self::Parent(p) => ("layer_parent", json!(p)),
+            Self::Clip(p) => ("layer_clip", json!(p)),
+            Self::TextAdd(p) => ("text_add", json!(p)),
+            Self::TextSet(p) => ("text_set", json!(p)),
+            Self::AdjustmentAdd(p) => ("adjustment_add", json!(p)),
+            Self::AdjustmentSet(p) => ("adjustment_set", json!(p)),
             Self::Add(p) => ("layer_add", json!(p)),
             Self::Set(p) => ("layer_set", json!(p)),
             Self::Transform(p) => ("layer_transform", json!(p)),
@@ -128,4 +246,14 @@ impl LayerOperation {
             Self::SelectionClear => ("selection_clear", json!({})),
         }
     }
+}
+
+fn dimensions(width: u32, height: u32) -> Result<()> {
+    if width == 0 || height == 0 {
+        return Err(PicError::new(
+            ErrorCode::InvalidArgument,
+            "layer bounds must be positive",
+        ));
+    }
+    Ok(())
 }

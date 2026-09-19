@@ -20,7 +20,7 @@ default_reasoning_effort: max
 | [done/04-project-history.md](done/04-project-history.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 自包含素材、不可变 ops、原子发布与跨进程历史完成；77 项测试和 35 项 release CLI 回归通过 |
 | [done/05-replay-preview.md](done/05-replay-preview.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 精确检查点、预算/失效、坐标预览、旧步骤修改和显式模板完成；90 项测试与 40 项 release CLI 回归通过 |
 | [done/06-layers-masks.md](done/06-layers-masks.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | 稳定图层、无损变换、四模式混合、coverage 蒙版、选区、完整检查点与坐标预览完成；109 项测试与 46 项 release CLI 回归通过 |
-| 07-groups-text-adjustment.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 分组、剪贴蒙版、文字和调整层 |
+| [done/07-groups-text-adjustment.md](done/07-groups-text-adjustment.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | 隔离组、剪贴、真实字体排版、非破坏调整及完整检查点完成；127 项测试、49 项 release CLI、文字里程碑与 4K 双层验收通过 |
 | 11-core-performance.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 普通编辑与工程模式端到端测量和优化 |
 | 12-agent-packaging.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | agent 文档、示例和基础功能打包验收 |
 
@@ -34,7 +34,7 @@ default_reasoning_effort: max
 4. [done/04-project-history.md](done/04-project-history.md)；依赖 03-adjustments-filters.md；已完成并保留验收证据。
 5. [done/05-replay-preview.md](done/05-replay-preview.md)；依赖 04-project-history.md；已完成并保留验收证据。
 6. [done/06-layers-masks.md](done/06-layers-masks.md)；依赖 05-replay-preview.md；已完成并保留验收证据。
-7. 07-groups-text-adjustment.md；依赖 06-layers-masks.md。
+7. [done/07-groups-text-adjustment.md](done/07-groups-text-adjustment.md)；依赖 06-layers-masks.md；已完成并保留验收证据。
 8. 11-core-performance.md；依赖 07-groups-text-adjustment.md。
 9. 12-agent-packaging.md；依赖 11-core-performance.md。
 

@@ -8,7 +8,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-pub(super) const MAGIC: &[u8; 8] = b"PICDOC02";
+pub(super) const MAGIC: &[u8; 8] = b"PICDOC03";
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Metadata {
@@ -77,8 +77,7 @@ pub(super) fn decode(bytes: &[u8], limits: &ResourceLimits) -> Result<CachedRast
     .map_err(|e| invalid(e.to_string()))?;
     limits.check_dimensions(meta.canvas.width, meta.canvas.height)?;
     if let Some(matrix) = meta.layer_to_canvas
-        && (!matrix.0.iter().all(|v| v.is_finite())
-            || !matrix.inverse().0.iter().all(|v| v.is_finite()))
+        && matrix.checked_inverse().is_none()
     {
         return Err(invalid("invalid snapshot coordinate mapping"));
     }
@@ -97,6 +96,7 @@ pub(super) fn decode(bytes: &[u8], limits: &ResourceLimits) -> Result<CachedRast
                 return Err(invalid("invalid document snapshot metadata"));
             }
             let mut layers = Vec::new();
+            let mut mappings = Vec::new();
             for layer in info.layers {
                 let raster = reader.raster(limits)?;
                 if raster.width() != layer.width || raster.height() != layer.height {
@@ -111,6 +111,9 @@ pub(super) fn decode(bytes: &[u8], limits: &ResourceLimits) -> Result<CachedRast
                     None
                 };
                 let rebuilt = Layer {
+                    kind: layer.kind,
+                    parent: layer.parent,
+                    clip: layer.clip,
                     id: layer.id,
                     name: layer.name,
                     visible: layer.visible,
@@ -120,11 +123,7 @@ pub(super) fn decode(bytes: &[u8], limits: &ResourceLimits) -> Result<CachedRast
                     raster,
                     mask,
                 };
-                if rebuilt.mapping() != layer.layer_to_canvas
-                    || rebuilt.mapping().inverse() != layer.canvas_to_layer
-                {
-                    return Err(invalid("snapshot mapping differs from transform"));
-                }
+                mappings.push((layer.layer_to_canvas, layer.canvas_to_layer));
                 layers.push(rebuilt);
             }
             let doc = Document {
@@ -136,6 +135,12 @@ pub(super) fn decode(bytes: &[u8], limits: &ResourceLimits) -> Result<CachedRast
                 used_layer_ids: info.used_layer_ids,
             };
             doc.validate(limits)?;
+            for (layer, (forward, inverse)) in doc.layers.iter().zip(mappings) {
+                let actual = doc.world_mapping(&layer.id)?;
+                if actual != forward || actual.inverse() != inverse {
+                    return Err(invalid("snapshot mapping differs from group transforms"));
+                }
+            }
             Ok(doc)
         })
         .transpose()?;

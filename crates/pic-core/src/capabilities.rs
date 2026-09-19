@@ -86,6 +86,13 @@ pub fn capabilities() -> Capabilities {
             "project layer reorder",
             "project layer remove",
             "project layer edit",
+            "project layer parent",
+            "project layer clip",
+            "project group add",
+            "project text add",
+            "project text set",
+            "project adjustment add",
+            "project adjustment set",
             "project mask set",
             "project mask remove",
             "project selection set",
@@ -162,7 +169,19 @@ pub fn capabilities() -> Capabilities {
                 id: "layer_compositing",
                 status: Partial,
                 scope: "current",
-                details: "Stable independent layers, order by ID, visibility/opacity, non-destructive transforms, normal/multiply/screen/overlay in linear sRGB, encoded grayscale coverage masks and explicit-space rectangular selections. Shared composite/render core. Groups, text and adjustment layers remain planned.",
+                details: "Stable independent layers, sibling order by ID, visibility/opacity, non-destructive transforms, normal/multiply/screen/overlay in linear sRGB, encoded grayscale coverage masks and explicit-space rectangular selections. Isolated bounded groups (32 ancestor levels), lower-sibling clipping chains, editable text and point adjustment layers use the same Document/ops/render core. Missing dependencies, cycles, cross-scope/forward clips and removal of referenced targets are rejected.",
+            },
+            Capability {
+                id: "text_layout",
+                status: Partial,
+                scope: "current",
+                details: "Explicit embedded static single-face TrueType outline font; no lookup/fallback. Rustybuzz 0.20.1 OpenType shaping and ab_glyph 0.2.32 antialiased coverage. Horizontal LTR Latin/Greek/Cyrillic (one alphabet per LF-delimited line), Common/Inherited; glyph coverage checked. LF only, left/center/right advance alignment, fixed box clips overflow, no auto wrap. No CJK, bidi, complex scripts, variable/color/bitmap fonts or collections. Missing glyph/font and unsupported text fail explicitly.",
+            },
+            Capability {
+                id: "adjustment_layers",
+                status: Partial,
+                scope: "current",
+                details: "Non-destructive adjust/levels/curves/grayscale/invert, v1 point formulas, lower accumulated sibling prefix only, bounded in parent scope. Interpolate RGB by transformed coverage * clip alpha * opacity, preserve backdrop alpha. Normal blend only; no spatial filter adjustment layers or pass-through groups.",
             },
             Capability {
                 id: "project_history_preview",
@@ -290,6 +309,7 @@ fn operation_capabilities() -> Vec<OperationCapability> {
             semantics: "Unsharp mask: B is the same blur v1 f32 result; visible RGB C'=C+amount*(C-B). Scalar f64 then f32, overshoot retained. Original alpha bits and zero-alpha hidden RGB preserved. sigma=0 or amount=0 exact identity. Same clamped-edge Gaussian and peak buffer budget as blur.",
         },
     ];
+    operations.extend(advanced_layer_capabilities(&operations));
     operations.extend(layer_capabilities());
     operations
 }
@@ -349,14 +369,14 @@ fn layer_capabilities() -> Vec<OperationCapability> {
             op_version: OP_VERSION,
             targets: vec!["layer_id"],
             params: object(vec![], json!({"before":nullable(string.clone())})),
-            semantics: "Insert below stable before ID; null moves to top. Self and absent references fail.",
+            semantics: "Insert below stable sibling before ID; null moves to top of current parent scope. Self/absent/cross-scope references and broken clip ordering fail.",
         },
         OperationCapability {
             op: "layer_remove",
             op_version: OP_VERSION,
             targets: vec!["layer_id"],
             params: object(vec![], json!({})),
-            semantics: "Remove independent layer and attached mask; clear a selection whose space references it. Undo restores all. ID remains reserved on this ancestry.",
+            semantics: "Remove layer and attached mask; reject groups with children and bases with clipping dependents. Clear a selection whose space references it. Undo restores all. ID remains reserved on this ancestry.",
         },
         OperationCapability {
             op: "mask_set",
@@ -388,6 +408,99 @@ fn layer_capabilities() -> Vec<OperationCapability> {
             targets: vec!["canvas"],
             params: object(vec![], json!({})),
             semantics: "Remove selection; subsequent local pixel edits affect the entire layer.",
+        },
+    ]
+}
+
+fn advanced_layer_capabilities(
+    point_operations: &[OperationCapability],
+) -> Vec<OperationCapability> {
+    use serde_json::json;
+    let string = json!({"type":"string","minLength":1});
+    let dimension = json!({"type":"integer","minimum":1,"maximum":u32::MAX});
+    let object = |required: Vec<&str>, properties: serde_json::Value| json!({"type":"object","additionalProperties":false,"required":required,"properties":properties});
+    let nullable = |value: serde_json::Value| json!({"anyOf":[value,{"type":"null"}]});
+    let text = object(
+        vec![
+            "text",
+            "font",
+            "size",
+            "line_height",
+            "width",
+            "height",
+            "align",
+            "color",
+        ],
+        json!({
+            "text":{"type":"string","description":"<=65536 UTF-8 bytes, LF-delimited LTR lines; one of Latin/Greek/Cyrillic plus Common/Inherited per line"},
+            "font":string,"size":{"type":"number","minimum":1,"maximum":512},
+            "line_height":{"type":"number","minimum":1,"maximum":4096},"width":dimension,"height":dimension,
+            "align":{"enum":["left","center","right"]},"color":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"integer","minimum":0,"maximum":255}}
+        }),
+    );
+    let adjustment = json!({"oneOf":point_operations.iter().filter(|op| matches!(op.op,"adjust"|"levels"|"curves"|"grayscale"|"invert")).map(|op|
+        object(vec!["op","params"],json!({"op":{"const":op.op},"params":op.params}))).collect::<Vec<_>>()});
+    vec![
+        OperationCapability {
+            op: "group_add",
+            op_version: OP_VERSION,
+            targets: vec!["canvas"],
+            params: object(
+                vec!["id", "name", "width", "height"],
+                json!({"id":string,"name":{"type":"string"},"width":dimension,"height":dimension}),
+            ),
+            semantics: "Append empty isolated group at root. Explicit fixed local bounds clip children. Children composite bottom-to-top, then group mask/transform/clip/opacity/blend apply once. No pass-through. Use layer_parent to populate; no implicit coordinate conversion.",
+        },
+        OperationCapability {
+            op: "layer_parent",
+            op_version: OP_VERSION,
+            targets: vec!["layer_id"],
+            params: object(
+                vec![],
+                json!({"parent":nullable(string.clone()),"before":nullable(string.clone())}),
+            ),
+            semantics: "Move into named group or root (null), below destination sibling before or at top (null), preserving local transform. Descendants stay attached. Reject missing/non-group parents, cycles, depth>32, cross-scope before and broken clip dependencies.",
+        },
+        OperationCapability {
+            op: "layer_clip",
+            op_version: OP_VERSION,
+            targets: vec!["layer_id"],
+            params: object(vec![], json!({"base":nullable(string.clone())})),
+            semantics: "Null detaches. Base must be a lower sibling raster/text/group. Source alpha *= base effective alpha after its mask/transform/opacity/visibility/clip. Chains multiply coverage; bases remain independently visible. Adjustment cannot be a base. No alpha borrowed from accumulated backdrop.",
+        },
+        OperationCapability {
+            op: "text_add",
+            op_version: OP_VERSION,
+            targets: vec!["canvas"],
+            params: object(
+                vec!["id", "name", "text"],
+                json!({"id":string,"name":{"type":"string"},"text":text}),
+            ),
+            semantics: "Append editable shaped text at root. Bind exact font bytes as project asset. size is px/em; first baseline is font ascender*size/upem, subsequent baselines add line_height. Align by shaped advances, clip fixed box, LF only. Default OpenType ligatures/kerning/marks; no silent font fallback.",
+        },
+        OperationCapability {
+            op: "text_set",
+            op_version: OP_VERSION,
+            targets: vec!["text_layer_id"],
+            params: text,
+            semantics: "Replace all editable text parameters and reshape from explicit font binding; preserve transform/parent/clip/properties. Existing mask must still match new box. Pixel edits are rejected for text layers.",
+        },
+        OperationCapability {
+            op: "adjustment_add",
+            op_version: OP_VERSION,
+            targets: vec!["canvas"],
+            params: object(
+                vec!["id", "name", "width", "height", "adjustment"],
+                json!({"id":string,"name":{"type":"string"},"width":dimension,"height":dimension,"adjustment":adjustment}),
+            ),
+            semantics: "Append non-destructive adjustment over lower accumulated siblings only. Explicit local bounds, masks/transforms/clips/opacity weight RGB interpolation. Backdrop alpha unchanged. Group scopes isolated; normal blend required. Preview of adjustment shows adjusted scope prefix.",
+        },
+        OperationCapability {
+            op: "adjustment_set",
+            op_version: OP_VERSION,
+            targets: vec!["adjustment_layer_id"],
+            params: adjustment,
+            semantics: "Replace point-operation parameters, retain layer bounds/properties/transform/mask/clip; lower raster pixels remain editable and unchanged.",
         },
     ]
 }

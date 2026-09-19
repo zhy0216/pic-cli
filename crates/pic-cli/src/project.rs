@@ -17,6 +17,21 @@ use crate::{Data, OutputArgs};
 
 #[derive(Subcommand)]
 pub(super) enum ProjectCommand {
+    /// Create isolated groups; use layer parent/set/transform/reorder for group editing
+    Group {
+        #[command(subcommand)]
+        command: crate::typography::GroupCommand,
+    },
+    /// Editable text with an embedded explicit font, LTR shaping, LF breaks and alignment
+    Text {
+        #[command(subcommand)]
+        command: crate::typography::TextCommand,
+    },
+    /// Non-destructive point adjustment of lower siblings in the same isolated scope
+    Adjustment {
+        #[command(subcommand)]
+        command: crate::typography::AdjustmentCommand,
+    },
     /// Edit independent layers using stable IDs; all mutations require expected revision
     Layer {
         #[command(subcommand)]
@@ -185,6 +200,9 @@ impl ProjectCommand {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Layer { .. } => "project layer",
+            Self::Group { .. } => "project group",
+            Self::Text { .. } => "project text",
+            Self::Adjustment { .. } => "project adjustment",
             Self::Mask { .. } => "project mask",
             Self::Selection { .. } => "project selection",
             Self::Create { .. } => "project create",
@@ -205,6 +223,9 @@ impl ProjectCommand {
     pub fn execute(self, limits: &ResourceLimits, diagnostics: &mut Diagnostics) -> Result<Data> {
         match self {
             Self::Layer { command } => command.execute(limits, diagnostics),
+            Self::Group { command } => command.execute(limits, diagnostics),
+            Self::Text { command } => command.execute(limits, diagnostics),
+            Self::Adjustment { command } => command.execute(limits, diagnostics),
             Self::Mask { command } => command.execute(limits, diagnostics),
             Self::Selection { command } => command.execute(limits, diagnostics),
             Self::Create { input, output } => Project::create(&input, &output, limits, diagnostics)

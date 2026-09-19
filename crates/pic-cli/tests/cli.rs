@@ -145,7 +145,7 @@ fn help_version_and_capabilities_are_truthful_and_json_safe() {
         );
     }
     let value = success(dir.path(), &["capabilities"]);
-    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 23);
+    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 30);
     assert_eq!(value["data"]["operations"][0]["op"], "identity");
     let items = value["data"]["capabilities"].as_array().unwrap();
     for status in ["supported", "partial", "not_implemented"] {

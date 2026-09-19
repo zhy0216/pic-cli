@@ -47,6 +47,10 @@ pub(super) fn validate_dependencies(
 }
 
 impl Project {
+    pub(super) fn load_font(&self, source: &str, limits: &ResourceLimits) -> Result<Vec<u8>> {
+        self.storage.asset(digest(source)?, limits.max_input_bytes)
+    }
+
     pub(super) fn load_operand(
         &self,
         source: &str,

@@ -62,6 +62,13 @@ impl OperationSpec {
             "mask_remove",
             "selection_set",
             "selection_clear",
+            "group_add",
+            "layer_parent",
+            "layer_clip",
+            "text_add",
+            "text_set",
+            "adjustment_add",
+            "adjustment_set",
         ]
         .contains(&self.op.as_str())
         {
@@ -84,7 +91,12 @@ impl OperationSpec {
         }
         let canvas_only = matches!(
             self.op.as_str(),
-            "layer_add" | "selection_set" | "selection_clear"
+            "layer_add"
+                | "group_add"
+                | "text_add"
+                | "adjustment_add"
+                | "selection_set"
+                | "selection_clear"
         );
         let layer_only = matches!(
             self.op.as_str(),
@@ -94,6 +106,10 @@ impl OperationSpec {
                 | "layer_remove"
                 | "mask_set"
                 | "mask_remove"
+                | "layer_parent"
+                | "layer_clip"
+                | "text_set"
+                | "adjustment_set"
         );
         if (canvas_only && self.target != TargetId::canvas())
             || (layer_only && self.target == TargetId::canvas())
@@ -101,6 +117,22 @@ impl OperationSpec {
             return Err(PicError::new(
                 ErrorCode::InvalidTarget,
                 "operation requires an explicit canvas or layer target",
+            ));
+        }
+        let nested = match self.op.as_str() {
+            "text_add" => Some("text"),
+            "adjustment_add" => Some("adjustment"),
+            _ => None,
+        };
+        if let Some(field) = nested
+            && !self
+                .params
+                .get(field)
+                .is_some_and(serde_json::Value::is_object)
+        {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                format!("{field} must be a named object"),
             ));
         }
         let operation = match self.op.as_str() {
@@ -139,6 +171,13 @@ impl OperationSpec {
                 Operation::Composite(self.parameters()?)
             }
             "layer_add" => Operation::Layer(LayerOperation::Add(self.parameters()?)),
+            "group_add" => Operation::Layer(LayerOperation::GroupAdd(self.parameters()?)),
+            "layer_parent" => Operation::Layer(LayerOperation::Parent(self.parameters()?)),
+            "layer_clip" => Operation::Layer(LayerOperation::Clip(self.parameters()?)),
+            "text_add" => Operation::Layer(LayerOperation::TextAdd(self.parameters()?)),
+            "text_set" => Operation::Layer(LayerOperation::TextSet(self.parameters()?)),
+            "adjustment_add" => Operation::Layer(LayerOperation::AdjustmentAdd(self.parameters()?)),
+            "adjustment_set" => Operation::Layer(LayerOperation::AdjustmentSet(self.parameters()?)),
             "layer_set" => Operation::Layer(LayerOperation::Set(self.parameters()?)),
             "layer_transform" => Operation::Layer(LayerOperation::Transform(self.parameters()?)),
             "layer_reorder" => Operation::Layer(LayerOperation::Reorder(self.parameters()?)),
@@ -269,6 +308,8 @@ impl Operation {
                 .collect(),
             Self::Layer(LayerOperation::Add(p)) => vec![&p.source],
             Self::Layer(LayerOperation::MaskSet(p)) => vec![&p.source],
+            Self::Layer(LayerOperation::TextAdd(p)) => vec![&p.text.font],
+            Self::Layer(LayerOperation::TextSet(p)) => vec![&p.font],
             _ => Vec::new(),
         }
     }
@@ -284,6 +325,8 @@ impl Operation {
             }
             Self::Layer(LayerOperation::Add(p)) => p.source = bind(&p.source)?,
             Self::Layer(LayerOperation::MaskSet(p)) => p.source = bind(&p.source)?,
+            Self::Layer(LayerOperation::TextAdd(p)) => p.text.font = bind(&p.text.font)?,
+            Self::Layer(LayerOperation::TextSet(p)) => p.font = bind(&p.font)?,
             _ => (),
         }
         Ok(())
@@ -316,6 +359,7 @@ impl Operation {
                     _resources,
                     limits,
                     &mut |source, mask| _resources.load(source, mask, limits),
+                    &mut |source| _resources.load_bytes(source, limits),
                 )?;
                 *raster = document.render(&TargetId::canvas(), limits)?;
                 return Ok(());

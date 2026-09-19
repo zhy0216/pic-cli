@@ -1,13 +1,13 @@
 # 功能与兼容性矩阵
 
-当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜、任务 04 工程历史、任务 05 重放/预览及任务 06 图层/蒙版。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
+当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜、任务 04 工程历史、任务 05 重放/预览、任务 06 图层/蒙版及任务 07 分组/剪贴/文字/调整层。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
 
 ## 三类功能目标
 
 | 类别 | 目标内容 | 当前状态 | 本轮范围 |
 | --- | --- | --- | --- |
 | 照片/普通像素编辑 | 图片信息、PNG/JPEG 读写、有序管线、几何、调色、滤镜 | identity/几何/调色/滤镜已支持；格式和管线为 partial | 当前参数和像素语义已固定，后续按测量优化 |
-| 图层与合成 | 图层、位置/变换、混合模式、蒙版/选区、分组、文字、调整层 | partial：图层／混合／变换／蒙版／选区已支持 | 分组、文字和调整层后续实现 |
+| 图层与合成 | 图层、位置/变换、混合模式、蒙版/选区、分组、文字、调整层 | partial：图层／混合／变换／蒙版／选区／分组／剪贴／文字子集／点调整层已支持 | 直接参数编辑与完整工程恢复 |
 | 智能编辑 | 智能抠图、主体分割、智能修复、生成填充/扩图 | not_implemented，roadmap | 仅未来可做，不选型、不接模型、不要求 LLM 参与 |
 
 源素材 + 不可变 ops 的工程历史、跨进程续编、精确检查点、区域/缩放预览和显式绑定模板已实现，服务于前两类目标；当前状态支持完整独立图层，旧单画布历史直接兼容。
@@ -27,9 +27,10 @@
 | crop / resize / rotate / flip / canvas | supported | 单命令与 JSON 共用核心；nearest/bilinear、顺时针 ±360°、扩展/固定旋转画布、九个画布锚点；详见 [参数契约](geometry-codecs.md) |
 | adjust / levels / curves / grayscale / invert / blur / sharpen | supported | EV、亮度、对比度、饱和度、色阶、有序折线曲线、灰度、反相、高斯模糊及 unsharp；线性 RGBA32F，CLI/JSON 同核心，详见 [调色与滤镜契约](adjustments-filters.md) |
 | 图层、合成、蒙版、选区 | partial | 稳定 ID、有序显隐、opacity、无损变换、normal/multiply/screen/overlay、外部编码值 coverage、明确空间矩形并集；同一核心渲染与持久化，详见 [图层契约](layers-masks.md) |
-| 分组、文字、剪贴蒙版、调整层 | not_implemented | 任务 07 的后续直接编辑范围 |
+| 分组、剪贴蒙版、调整层 | partial | 隔离有界组、稳定 parent/clip 依赖与环校验、lower-sibling clip、同组下方前缀的非破坏点调整；无 pass-through/空间滤镜调整层，详见 [契约](groups-text-adjustments.md) |
+| 文字排版 | partial | 显式内嵌静态 TrueType；Rustybuzz shaping；Latin/Greek/Cyrillic 每行单字母表+Common/Inherited，LF换行、left/center/right，缺字/缺字体报错；无中文/bidi/自动换行/字体回退，详见 [契约](groups-text-adjustments.md) |
 | project / revision / replay / undo / redo | supported | 自包含素材、SHA-256 去重与完整性校验、不可变 ops、整组原子提交、expected_revision 冲突控制、任意已提交步骤完整重放与续编；Linux 验证，详见 [工程契约](project-history.md) |
-| preview / checkpoint / revise / template | partial | 完整图层／蒙版精确 RGBA32F 检查点与独立预览缓存、磁盘/内存预算、损坏回退、任意步骤/画布或图层或蒙版/区域/尺寸及仿射坐标映射、旧步骤参数修改与前缀复用；模板新输入/目标/完整参数必填，暂不支持外部蒙版等内容依赖操作。见 [重放与预览契约](replay-preview.md) |
+| preview / checkpoint / revise / template | partial | 完整图层／蒙版／组／文字字体／clip／调整参数精确 RGBA32F 检查点与独立预览缓存、磁盘/内存预算、损坏回退、任意步骤/画布或图层或蒙版/区域/尺寸及仿射坐标映射、旧步骤参数修改与前缀复用；模板新输入/目标/完整参数必填，暂不支持外部蒙版等内容依赖操作。见 [重放与预览契约](replay-preview.md) |
 | 智能能力 | not_implemented / roadmap | 无后端、模型依赖、凭据或网络请求 |
 
 ## 与 Photoshop 等工具的对齐维度

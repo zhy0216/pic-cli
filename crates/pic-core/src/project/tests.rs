@@ -1,5 +1,6 @@
 use super::*;
 
+mod groups_text;
 mod layers;
 mod replay;
 use crate::operation::{

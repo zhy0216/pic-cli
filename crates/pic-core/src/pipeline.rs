@@ -50,6 +50,16 @@ impl ResourceResolver {
     }
 
     pub fn load(&self, source: &str, mask: bool, limits: &ResourceLimits) -> Result<Raster> {
+        let bytes = self.load_bytes(source, limits)?;
+        let path = self.resolve(Path::new(source))?;
+        if mask {
+            codec::load_mask_bytes(&bytes, path, limits)
+        } else {
+            Ok(codec::load_bytes(&bytes, path, limits, &mut Diagnostics::default())?.raster)
+        }
+    }
+
+    pub(crate) fn load_bytes(&self, source: &str, limits: &ResourceLimits) -> Result<Vec<u8>> {
         if source.starts_with("asset:") {
             return Err(PicError::new(
                 ErrorCode::InvalidArgument,
@@ -57,12 +67,7 @@ impl ResourceResolver {
             ));
         }
         let path = self.resolve(Path::new(source))?;
-        let bytes = read_limited(&path, limits.max_input_bytes)?;
-        if mask {
-            codec::load_mask_bytes(&bytes, path, limits)
-        } else {
-            Ok(codec::load_bytes(&bytes, path, limits, &mut Diagnostics::default())?.raster)
-        }
+        read_limited(&path, limits.max_input_bytes)
     }
 
     pub fn base_dir(&self) -> &Path {
@@ -203,6 +208,7 @@ impl Pipeline {
             Document::from_raster(raster),
             &limits,
             &mut |source, mask| self.resources.load(source, mask, &limits),
+            &mut |source| self.resources.load_bytes(source, &limits),
         )
     }
 
@@ -222,6 +228,7 @@ impl Pipeline {
         mut document: Document,
         limits: &ResourceLimits,
         load: &mut impl FnMut(&str, bool) -> Result<Raster>,
+        load_font: &mut impl FnMut(&str) -> Result<Vec<u8>>,
     ) -> Result<Execution> {
         if self.steps.len() > limits.max_operations {
             return Err(PicError::new(
@@ -234,7 +241,14 @@ impl Pipeline {
         let mut steps = Vec::with_capacity(self.steps.len());
         for (index, (spec, operation)) in self.steps.iter().enumerate() {
             document
-                .apply(&spec.target, operation, &self.resources, &limits, load)
+                .apply(
+                    &spec.target,
+                    operation,
+                    &self.resources,
+                    &limits,
+                    load,
+                    load_font,
+                )
                 .map_err(|mut error| {
                     error.message = format!("operations[{index}]: {}", error.message);
                     error

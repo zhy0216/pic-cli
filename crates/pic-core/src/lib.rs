@@ -10,5 +10,6 @@ pub mod operation;
 pub mod pipeline;
 pub mod project;
 pub mod result;
+pub mod text;
 
 pub use error::{ErrorCode, PicError, Result};

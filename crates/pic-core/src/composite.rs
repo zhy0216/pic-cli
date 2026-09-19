@@ -43,6 +43,28 @@ impl Affine {
             (b * e - a * f) / det,
         ])
     }
+    /// Reject overflow/underflow in the determinant before accepting inverse coordinates.
+    /// Finite matrix entries alone do not imply a numerically representable inverse.
+    pub(crate) fn checked_inverse(self) -> Option<Self> {
+        let [a, b, c, d, _, _] = self.0;
+        let determinant = a * d - b * c;
+        if !self.0.iter().all(|v| v.is_finite()) || !determinant.is_finite() || determinant == 0.0 {
+            return None;
+        }
+        let inverse = self.inverse();
+        if !inverse.0.iter().all(|v| v.is_finite()) {
+            return None;
+        }
+        let roundtrip = self.then(inverse);
+        if roundtrip.0[..4]
+            .iter()
+            .zip([1.0, 0.0, 0.0, 1.0])
+            .any(|(actual, expected)| !actual.is_finite() || (actual - expected).abs() > 1e-8)
+        {
+            return None;
+        }
+        Some(inverse)
+    }
     /// Apply `other` first, then self.
     pub fn then(self, other: Self) -> Self {
         let [a, b, c, d, e, f] = self.0;
@@ -193,6 +215,15 @@ pub(crate) fn sample(layer: &Layer, point: [f64; 2], mask_only: bool) -> [f32; 4
         p
     };
     let [x, y] = point;
+    if !x.is_finite()
+        || !y.is_finite()
+        || x < -1.0
+        || y < -1.0
+        || x > f64::from(layer.raster.width()) + 1.0
+        || y > f64::from(layer.raster.height()) + 1.0
+    {
+        return [0.0; 4];
+    }
     if layer.transform.filter == Interpolation::Nearest {
         return tap(x.floor() as i64, y.floor() as i64);
     }
