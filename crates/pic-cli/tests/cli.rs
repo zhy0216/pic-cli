@@ -145,7 +145,7 @@ fn help_version_and_capabilities_are_truthful_and_json_safe() {
         );
     }
     let value = success(dir.path(), &["capabilities"]);
-    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 1);
+    assert_eq!(value["data"]["operations"].as_array().unwrap().len(), 6);
     assert_eq!(value["data"]["operations"][0]["op"], "identity");
     let items = value["data"]["capabilities"].as_array().unwrap();
     for status in ["supported", "partial", "not_implemented"] {
@@ -592,7 +592,7 @@ fn invalid_json_and_operations_fail_before_image_io() {
             "unsupported_version",
         ),
         (
-            r#"{"schema_version":1,"operations":[{"op":"resize","op_version":1,"target":"canvas","params":{}}]}"#,
+            r#"{"schema_version":1,"operations":[{"op":"future-op","op_version":1,"target":"canvas","params":{}}]}"#,
             "unknown_operation",
         ),
         (
@@ -793,4 +793,649 @@ fn output_symlinks_and_non_utf8_paths_never_cause_unreported_writes() {
     assert_eq!(value["error"]["code"], "invalid_argument");
     assert!(!bad_path.exists());
     assert_no_temporaries(dir.path());
+}
+
+fn write_pipeline(dir: &Path, operations: Vec<Value>) {
+    fs::write(
+        dir.join("geometry.json"),
+        serde_json::to_vec(&serde_json::json!({"schema_version":1,"operations":operations}))
+            .unwrap(),
+    )
+    .unwrap();
+}
+
+fn geometry_op(op: &str, params: Value) -> Value {
+    serde_json::json!({"op":op,"op_version":1,"target":"canvas","params":params})
+}
+
+#[test]
+fn every_geometry_command_matches_a_json_step_in_separate_processes() {
+    use serde_json::json;
+    let (dir, _) = fixture();
+    for (op, arguments, params) in [
+        (
+            "crop",
+            vec!["--x", "2", "--y", "1", "--width", "4", "--height", "3"],
+            json!({"x":2,"y":1,"width":4,"height":3}),
+        ),
+        (
+            "resize",
+            vec!["--width", "7"],
+            json!({"width":7,"height":null,"filter":"bilinear"}),
+        ),
+        (
+            "resize",
+            vec!["--height", "3", "--filter", "nearest"],
+            json!({"width":null,"height":3,"filter":"nearest"}),
+        ),
+        (
+            "rotate",
+            vec!["--degrees", "90"],
+            json!({"degrees":90.0,"expand":true,"filter":"bilinear","background":[0,0,0,0]}),
+        ),
+        (
+            "rotate",
+            vec!["--degrees", "-37", "--background", "#0000ff80"],
+            json!({"degrees":-37.0,"expand":true,"filter":"bilinear","background":[0,0,255,128]}),
+        ),
+        (
+            "rotate",
+            vec!["--degrees", "45", "--keep-size", "--filter", "nearest"],
+            json!({"degrees":45.0,"expand":false,"filter":"nearest","background":[0,0,0,0]}),
+        ),
+        (
+            "flip",
+            vec!["--axis", "horizontal"],
+            json!({"axis":"horizontal"}),
+        ),
+        (
+            "flip",
+            vec!["--axis", "vertical"],
+            json!({"axis":"vertical"}),
+        ),
+        (
+            "canvas",
+            vec![
+                "--width",
+                "19",
+                "--height",
+                "10",
+                "--background",
+                "#1280ff",
+                "--anchor",
+                "bottom_right",
+            ],
+            json!({"width":19,"height":10,"anchor":"bottom_right","background":[18,128,255,255]}),
+        ),
+        (
+            "canvas",
+            vec!["--width", "7", "--height", "3"],
+            json!({"width":7,"height":3,"anchor":"center","background":[0,0,0,0]}),
+        ),
+    ] {
+        let mut args = vec![
+            op,
+            "--input",
+            "input.png",
+            "--output",
+            "single.png",
+            "--overwrite",
+        ];
+        args.extend(arguments);
+        let single = success(dir.path(), &args);
+        write_pipeline(dir.path(), vec![geometry_op(op, params)]);
+        let pipeline = success(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "input.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                "pipeline.png",
+                "--overwrite",
+            ],
+        );
+        assert_eq!(single["data"]["steps"], pipeline["data"]["steps"], "{op}");
+        let a = image::open(dir.path().join("single.png"))
+            .unwrap()
+            .into_rgba8();
+        let b = image::open(dir.path().join("pipeline.png"))
+            .unwrap()
+            .into_rgba8();
+        assert_eq!(a, b, "{op}");
+    }
+}
+
+#[test]
+fn multistep_pipeline_matches_sequential_cli_processes_and_known_coordinates() {
+    use serde_json::json;
+    let dir = tempfile::tempdir().unwrap();
+    let original = RgbaImage::from_fn(3, 2, |x, y| {
+        Rgba([(x * 80) as u8, (y * 150) as u8, 57, ((x + y) * 70) as u8])
+    });
+    original.save(dir.path().join("input.png")).unwrap();
+    let steps = [
+        (
+            "crop",
+            vec!["--x", "1", "--y", "0", "--width", "2", "--height", "2"],
+            json!({"x":1,"y":0,"width":2,"height":2}),
+        ),
+        (
+            "resize",
+            vec!["--width", "4", "--height", "4", "--filter", "nearest"],
+            json!({"width":4,"height":4,"filter":"nearest"}),
+        ),
+        (
+            "rotate",
+            vec!["--degrees", "90"],
+            json!({"degrees":90.0,"expand":true,"filter":"bilinear","background":[0,0,0,0]}),
+        ),
+        (
+            "flip",
+            vec!["--axis", "horizontal"],
+            json!({"axis":"horizontal"}),
+        ),
+        (
+            "flip",
+            vec!["--axis", "vertical"],
+            json!({"axis":"vertical"}),
+        ),
+        (
+            "canvas",
+            vec![
+                "--width",
+                "6",
+                "--height",
+                "5",
+                "--anchor",
+                "bottom_right",
+                "--background",
+                "#01020304",
+            ],
+            json!({"width":6,"height":5,"anchor":"bottom_right","background":[1,2,3,4]}),
+        ),
+    ];
+    let mut ops = vec![];
+    for (index, (op, arguments, params)) in steps.into_iter().enumerate() {
+        let input = if index == 0 { "input.png" } else { "step.png" };
+        let mut args = vec![op, "--input", input, "--output", "step.png", "--overwrite"];
+        args.extend(arguments);
+        success(dir.path(), &args);
+        ops.push(geometry_op(op, params));
+    }
+    write_pipeline(dir.path(), ops);
+    let result = success(
+        dir.path(),
+        &[
+            "run",
+            "--input",
+            "input.png",
+            "--pipeline",
+            "geometry.json",
+            "--output",
+            "pipeline.png",
+        ],
+    );
+    assert_eq!(result["data"]["operations_applied"], 6);
+    let output = image::open(dir.path().join("pipeline.png"))
+        .unwrap()
+        .into_rgba8();
+    assert_eq!(
+        output,
+        image::open(dir.path().join("step.png"))
+            .unwrap()
+            .into_rgba8()
+    );
+    assert_eq!(output.dimensions(), (6, 5));
+    // After crop/2x nearest/90 clockwise/both flips: [2,5] above [1,4], each doubled.
+    for y in 0..5 {
+        for x in 0..6 {
+            let expected = if x < 2 || y < 1 {
+                Rgba([1, 2, 3, 4])
+            } else {
+                let sx = if y < 3 { 2 } else { 1 };
+                let sy = if x < 4 { 0 } else { 1 };
+                *original.get_pixel(sx, sy)
+            };
+            assert_eq!(*output.get_pixel(x, y), expected, "({x},{y})");
+        }
+    }
+}
+
+fn exif_orientation(value: u16, little: bool) -> Vec<u8> {
+    if little {
+        let mut bytes = b"II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0".to_vec();
+        bytes.extend(value.to_le_bytes());
+        bytes.extend([0; 6]);
+        bytes
+    } else {
+        let mut bytes = b"MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01".to_vec();
+        bytes.extend(value.to_be_bytes());
+        bytes.extend([0; 6]);
+        bytes
+    }
+}
+
+fn jpeg_segment(bytes: &[u8], marker: u8, payload: &[u8], late: bool) -> Vec<u8> {
+    let offset = if late { bytes.len() - 2 } else { 2 };
+    let mut output = bytes[..offset].to_vec();
+    output.extend([0xff, marker]);
+    output.extend(((payload.len() + 2) as u16).to_be_bytes());
+    output.extend(payload);
+    output.extend(&bytes[offset..]);
+    output
+}
+
+#[test]
+fn real_jpeg_exif_all_eight_orientations_are_normalized_before_info_and_crop() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = RgbImage::from_fn(3, 2, |x, y| Rgb([(x * 100) as u8, (y * 180) as u8, 31]));
+    let mut encoded = vec![];
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut encoded, 100)
+        .encode(source.as_raw(), 3, 2, image::ExtendedColorType::Rgb8)
+        .unwrap();
+    let stored = image::load_from_memory(&encoded).unwrap().into_rgb8();
+    for (orientation, labels) in [
+        (1, vec![0, 1, 2, 3, 4, 5]),
+        (2, vec![2, 1, 0, 5, 4, 3]),
+        (3, vec![5, 4, 3, 2, 1, 0]),
+        (4, vec![3, 4, 5, 0, 1, 2]),
+        (5, vec![0, 3, 1, 4, 2, 5]),
+        (6, vec![3, 0, 4, 1, 5, 2]),
+        (7, vec![5, 2, 4, 1, 3, 0]),
+        (8, vec![2, 5, 1, 4, 0, 3]),
+    ] {
+        for little in [true, false] {
+            let mut payload = b"Exif\0\0".to_vec();
+            payload.extend(exif_orientation(orientation, little));
+            // Metadata after entropy scans is also inspected and applied.
+            fs::write(
+                dir.path().join("tagged.jpg"),
+                jpeg_segment(&encoded, 0xe1, &payload, !little),
+            )
+            .unwrap();
+            let info = success(dir.path(), &["info", "tagged.jpg"]);
+            let (width, height) = if orientation >= 5 { (2, 3) } else { (3, 2) };
+            assert_eq!(info["data"]["width"], width);
+            assert_eq!(info["data"]["height"], height);
+            assert_eq!(info["data"]["stored_width"], 3);
+            assert_eq!(info["data"]["stored_height"], 2);
+            assert_eq!(info["data"]["exif_orientation"], orientation);
+            success(
+                dir.path(),
+                &[
+                    "identity",
+                    "--input",
+                    "tagged.jpg",
+                    "--output",
+                    "normalized.png",
+                    "--overwrite",
+                ],
+            );
+            let output = image::open(dir.path().join("normalized.png"))
+                .unwrap()
+                .into_rgb8();
+            for (pixel, &index) in output.pixels().zip(&labels) {
+                assert_eq!(
+                    pixel,
+                    stored.get_pixel(index % 3, index / 3),
+                    "orientation {orientation}, little={little}"
+                );
+            }
+            success(
+                dir.path(),
+                &[
+                    "crop",
+                    "--input",
+                    "tagged.jpg",
+                    "--output",
+                    "crop.png",
+                    "--overwrite",
+                    "--x",
+                    "0",
+                    "--y",
+                    "0",
+                    "--width",
+                    "1",
+                    "--height",
+                    "1",
+                ],
+            );
+            assert_eq!(
+                image::open(dir.path().join("crop.png"))
+                    .unwrap()
+                    .into_rgb8()
+                    .get_pixel(0, 0),
+                stored.get_pixel(labels[0] % 3, labels[0] / 3)
+            );
+            // Export has no EXIF left to apply a second time.
+            assert!(
+                success(dir.path(), &["info", "normalized.png"])["data"]["exif_orientation"]
+                    .is_null()
+            );
+        }
+    }
+}
+
+#[test]
+fn png_exif_and_malformed_or_ambiguous_orientation_have_explicit_behavior() {
+    let (dir, source) = fixture();
+    let encoded = fs::read(dir.path().join("input.png")).unwrap();
+    let mut png = encoded[..33].to_vec();
+    png.extend(png_chunk(b"eXIf", &exif_orientation(6, true)));
+    png.extend(&encoded[33..]);
+    fs::write(dir.path().join("exif.png"), png).unwrap();
+    success(
+        dir.path(),
+        &[
+            "identity",
+            "--input",
+            "exif.png",
+            "--output",
+            "normalized.png",
+        ],
+    );
+    let output = image::open(dir.path().join("normalized.png"))
+        .unwrap()
+        .into_rgba8();
+    assert_eq!(output.dimensions(), (8, 16));
+    assert_eq!(*output.get_pixel(0, 0), *source.get_pixel(0, 7));
+    let jpeg = fs::read(dir.path().join("input.jpg")).unwrap();
+    let mut duplicate = exif_orientation(1, true);
+    duplicate[8] = 2;
+    duplicate.splice(22..22, exif_orientation(6, true)[10..22].iter().copied());
+    let mut bad_pointer = exif_orientation(1, true);
+    bad_pointer[4..8].copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut wrong_type = exif_orientation(1, true);
+    wrong_type[12] = 4;
+    for exif in [
+        exif_orientation(0, true),
+        exif_orientation(9, false),
+        duplicate,
+        bad_pointer,
+        wrong_type,
+    ] {
+        let mut payload = b"Exif\0\0".to_vec();
+        payload.extend(exif);
+        fs::write(
+            dir.path().join("bad.jpg"),
+            jpeg_segment(&jpeg, 0xe1, &payload, false),
+        )
+        .unwrap();
+        failure(dir.path(), &["info", "bad.jpg"], "unsupported_metadata");
+    }
+    let mut payload = b"Exif\0\0".to_vec();
+    payload.extend(exif_orientation(1, true));
+    let tagged = jpeg_segment(&jpeg, 0xe1, &payload, false);
+    fs::write(
+        dir.path().join("duplicate.jpg"),
+        jpeg_segment(&tagged, 0xe1, &payload, true),
+    )
+    .unwrap();
+    failure(
+        dir.path(),
+        &["info", "duplicate.jpg"],
+        "unsupported_metadata",
+    );
+}
+
+#[test]
+fn exif_non_srgb_colors_and_unsupported_png_jpeg_representations_are_rejected() {
+    let (dir, _) = fixture();
+    let jpeg = fs::read(dir.path().join("input.jpg")).unwrap();
+    // IFD0 points to an Exif sub-IFD containing ColorSpace (A001).
+    for color in [1u16, 2, 65535] {
+        let mut tiff = exif_orientation(1, true);
+        tiff[10..12].copy_from_slice(&0x8769u16.to_le_bytes());
+        tiff[12..14].copy_from_slice(&4u16.to_le_bytes());
+        tiff[18..22].copy_from_slice(&26u32.to_le_bytes());
+        let mut sub = exif_orientation(color, true)[8..].to_vec();
+        sub[2..4].copy_from_slice(&0xa001u16.to_le_bytes());
+        tiff.extend(sub);
+        let mut payload = b"Exif\0\0".to_vec();
+        payload.extend(tiff);
+        fs::write(
+            dir.path().join("color.jpg"),
+            jpeg_segment(&jpeg, 0xe1, &payload, false),
+        )
+        .unwrap();
+        if color == 1 {
+            assert_eq!(
+                success(dir.path(), &["info", "color.jpg"])["data"]["color_source"],
+                "declared_srgb"
+            );
+        } else {
+            failure(dir.path(), &["info", "color.jpg"], "unsupported_color");
+        }
+    }
+    let frame = jpeg.windows(2).position(|b| b == [0xff, 0xc0]).unwrap();
+    for (field, value) in [(frame + 4, 12), (frame + 9, 4)] {
+        let mut bytes = jpeg.clone();
+        bytes[field] = value;
+        fs::write(dir.path().join("unsupported.jpg"), bytes).unwrap();
+        failure(
+            dir.path(),
+            &["info", "unsupported.jpg"],
+            "unsupported_color",
+        );
+    }
+    let png = fs::read(dir.path().join("input.png")).unwrap();
+    for (depth, color) in [(8, 3), (1, 0), (4, 0), (16, 6)] {
+        let mut header = png[16..29].to_vec();
+        header[8] = depth;
+        header[9] = color;
+        let mut bytes = png[..8].to_vec();
+        bytes.extend(png_chunk(b"IHDR", &header));
+        bytes.extend(&png[33..]);
+        fs::write(dir.path().join("unsupported.png"), bytes).unwrap();
+        failure(
+            dir.path(),
+            &["info", "unsupported.png"],
+            "unsupported_color",
+        );
+    }
+}
+
+#[test]
+fn png_compression_and_transparent_jpeg_policy_work_on_real_files() {
+    let (dir, expected) = fixture();
+    for level in ["0", "1", "6", "9"] {
+        let result = success(
+            dir.path(),
+            &[
+                "identity",
+                "--input",
+                "input.png",
+                "--output",
+                "compressed.png",
+                "--overwrite",
+                "--png-compression",
+                level,
+            ],
+        );
+        assert_eq!(
+            result["data"]["png_compression"],
+            level.parse::<u8>().unwrap()
+        );
+        assert_eq!(
+            image::open(dir.path().join("compressed.png"))
+                .unwrap()
+                .into_rgba8(),
+            expected
+        );
+    }
+    let size = |level| {
+        success(
+            dir.path(),
+            &[
+                "identity",
+                "--input",
+                "input.png",
+                "--output",
+                "compressed.png",
+                "--overwrite",
+                "--png-compression",
+                level,
+            ],
+        );
+        fs::metadata(dir.path().join("compressed.png"))
+            .unwrap()
+            .len()
+    };
+    assert!(size("0") > size("9"));
+    RgbaImage::from_pixel(8, 8, Rgba([255, 0, 0, 128]))
+        .save(dir.path().join("alpha.png"))
+        .unwrap();
+    let result = success(
+        dir.path(),
+        &[
+            "identity",
+            "--input",
+            "alpha.png",
+            "--output",
+            "flat.jpg",
+            "--jpeg-background",
+            "#0000ff",
+            "--jpeg-quality",
+            "100",
+        ],
+    );
+    assert_eq!(
+        result["data"]["jpeg_background"],
+        serde_json::json!([0, 0, 255, 255])
+    );
+    assert!(
+        result["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|w| w["code"] == "alpha_flattened")
+    );
+    let output = image::open(dir.path().join("flat.jpg"))
+        .unwrap()
+        .into_rgb8();
+    assert!(
+        output
+            .pixels()
+            .all(|p| p[0].abs_diff(188) <= 3 && p[1] <= 3 && p[2].abs_diff(187) <= 3)
+    );
+    failure(
+        dir.path(),
+        &[
+            "identity",
+            "--input",
+            "alpha.png",
+            "--output",
+            "flat.jpg",
+            "--overwrite",
+        ],
+        "alpha_not_supported",
+    );
+    assert_eq!(
+        image::open(dir.path().join("flat.jpg"))
+            .unwrap()
+            .into_rgb8(),
+        output
+    );
+}
+
+#[test]
+fn geometry_errors_are_structured_and_never_replace_outputs() {
+    use serde_json::json;
+    let (dir, _) = fixture();
+    fs::write(dir.path().join("keep.png"), b"keep original bytes").unwrap();
+    for (op, params, code) in [
+        (
+            "crop",
+            json!({"x":15,"y":0,"width":2,"height":1}),
+            "invalid_argument",
+        ),
+        (
+            "crop",
+            json!({"x":4294967295u32,"y":0,"width":1,"height":1}),
+            "invalid_argument",
+        ),
+        (
+            "resize",
+            json!({"width":0,"filter":"nearest"}),
+            "invalid_argument",
+        ),
+        (
+            "resize",
+            json!({"width":4294967296u64,"filter":"nearest"}),
+            "invalid_argument",
+        ),
+        (
+            "resize",
+            json!({"width":32769,"filter":"nearest"}),
+            "resource_limit",
+        ),
+        (
+            "canvas",
+            json!({"width":32768,"height":32768,"anchor":"center","background":[0,0,0,0]}),
+            "resource_limit",
+        ),
+    ] {
+        write_pipeline(
+            dir.path(),
+            vec![
+                geometry_op("flip", json!({"axis":"horizontal"})),
+                geometry_op(op, params),
+            ],
+        );
+        failure(
+            dir.path(),
+            &[
+                "run",
+                "--input",
+                "input.png",
+                "--pipeline",
+                "geometry.json",
+                "--output",
+                "keep.png",
+                "--overwrite",
+            ],
+            code,
+        );
+        assert_eq!(
+            fs::read(dir.path().join("keep.png")).unwrap(),
+            b"keep original bytes"
+        );
+        assert_no_temporaries(dir.path());
+    }
+    for arguments in [
+        vec!["resize", "--width", "-1"],
+        vec!["resize", "--width", "4294967296"],
+        vec!["resize", "--width", "1", "--filter", "cubic"],
+        vec!["rotate", "--degrees", "NaN"],
+        vec!["rotate", "--degrees", "inf"],
+        vec!["rotate", "--degrees", "-361"],
+        vec![
+            "canvas",
+            "--width",
+            "2",
+            "--height",
+            "2",
+            "--background",
+            "#abcdefgg",
+        ],
+        vec!["identity", "--png-compression", "10"],
+        vec!["identity", "--jpeg-background", "#ff0000"],
+    ] {
+        let mut args = arguments;
+        args.extend([
+            "--input",
+            "input.png",
+            "--output",
+            "keep.png",
+            "--overwrite",
+        ]);
+        failure(dir.path(), &args, "invalid_argument");
+        assert_eq!(
+            fs::read(dir.path().join("keep.png")).unwrap(),
+            b"keep original bytes"
+        );
+    }
 }

@@ -142,6 +142,7 @@ fn all_srgb_bytes_and_hidden_transparent_colors_survive_png_roundtrip() {
     let jpeg = EncodeOptions {
         format: Some(Format::Jpeg),
         jpeg_quality: None,
+        ..EncodeOptions::default()
     }
     .resolve(Path::new("result.jpg"))
     .unwrap();
@@ -163,7 +164,7 @@ fn strict_pipeline_validation_rejects_versions_unknown_ops_and_parameters() {
             ErrorCode::UnsupportedVersion,
         ),
         (
-            r#"{"schema_version":1,"operations":[{"op":"resize","op_version":1,"target":"canvas","params":{}}]}"#,
+            r#"{"schema_version":1,"operations":[{"op":"future-op","op_version":1,"target":"canvas","params":{}}]}"#,
             ErrorCode::UnknownOperation,
         ),
         (
@@ -347,7 +348,8 @@ fn encoding_options_do_not_ignore_invalid_parameters() {
     assert_eq!(
         EncodeOptions {
             format: None,
-            jpeg_quality: Some(90)
+            jpeg_quality: Some(90),
+            ..EncodeOptions::default()
         }
         .resolve(Path::new("out.png"))
         .unwrap_err()
@@ -357,7 +359,8 @@ fn encoding_options_do_not_ignore_invalid_parameters() {
     assert_eq!(
         EncodeOptions {
             format: None,
-            jpeg_quality: Some(0)
+            jpeg_quality: Some(0),
+            ..EncodeOptions::default()
         }
         .resolve(Path::new("out.jpg"))
         .unwrap_err()
@@ -374,7 +377,8 @@ fn encoding_options_do_not_ignore_invalid_parameters() {
     assert_eq!(
         EncodeOptions {
             format: Some(Format::Png),
-            jpeg_quality: None
+            jpeg_quality: None,
+            ..EncodeOptions::default()
         }
         .resolve(Path::new("out.data"))
         .unwrap()

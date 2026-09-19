@@ -69,6 +69,7 @@ impl ResourceResolver {
 pub struct Pipeline {
     steps: Vec<(OperationSpec, Operation)>,
     resources: ResourceResolver,
+    limits: ResourceLimits,
 }
 
 #[derive(Debug, Serialize)]
@@ -78,6 +79,7 @@ pub struct ExecutedStep {
     pub op: String,
     pub op_version: u32,
     pub target: TargetId,
+    pub params: serde_json::Value,
 }
 
 #[derive(Debug)]
@@ -151,12 +153,13 @@ impl Pipeline {
                     error.message = format!("operations[{index}]: {}", error.message);
                     error
                 })?;
-                Ok((spec, operation))
+                Ok((operation.to_spec(), operation))
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             steps,
             resources: ResourceResolver::new(base_dir)?,
+            limits: limits.clone(),
         })
     }
 
@@ -165,15 +168,43 @@ impl Pipeline {
     }
 
     /// Retains every logical step boundary and never changes pixel representation.
-    pub fn execute(&self, mut raster: Raster) -> Result<Execution> {
+    pub fn execute(&self, raster: Raster) -> Result<Execution> {
+        self.execute_with_limits(raster, &self.limits)
+    }
+
+    /// Additional caller limits also apply; a pipeline cannot relax its construction limits.
+    pub fn execute_with_limits(
+        &self,
+        mut raster: Raster,
+        limits: &ResourceLimits,
+    ) -> Result<Execution> {
+        if self.steps.len() > limits.max_operations {
+            return Err(PicError::new(
+                ErrorCode::ResourceLimit,
+                "pipeline exceeds operation limit",
+            ));
+        }
+        let limits = ResourceLimits {
+            max_dimension: limits.max_dimension.min(self.limits.max_dimension),
+            max_pixels: limits.max_pixels.min(self.limits.max_pixels),
+            max_buffer_bytes: limits.max_buffer_bytes.min(self.limits.max_buffer_bytes),
+            ..limits.clone()
+        };
+        limits.check_dimensions(raster.width(), raster.height())?;
         let mut steps = Vec::with_capacity(self.steps.len());
         for (index, (spec, operation)) in self.steps.iter().enumerate() {
-            operation.apply(&mut raster, &self.resources)?;
+            operation
+                .apply_with_limits(&mut raster, &self.resources, &limits)
+                .map_err(|mut error| {
+                    error.message = format!("operations[{index}]: {}", error.message);
+                    error
+                })?;
             steps.push(ExecutedStep {
                 index,
                 op: spec.op.clone(),
                 op_version: spec.op_version,
                 target: spec.target.clone(),
+                params: spec.params.clone(),
             });
         }
         Ok(Execution { raster, steps })
@@ -199,6 +230,8 @@ pub struct RunResult {
     pub steps: Vec<ExecutedStep>,
     pub resource_base: PathBuf,
     pub jpeg_quality: Option<u8>,
+    pub png_compression: Option<u8>,
+    pub jpeg_background: Option<crate::operation::geometry::RgbaColor>,
 }
 
 /// The only file-processing entry point for both a single operation and JSON pipelines.
@@ -214,7 +247,7 @@ pub fn run(
     })?;
     let input = codec::load(request.input, limits, diagnostics)?;
     let execution = timed(&mut diagnostics.timings.process_ms, || {
-        request.pipeline.execute(input.raster)
+        request.pipeline.execute_with_limits(input.raster, limits)
     })?;
     let encoded = timed(&mut diagnostics.timings.encode_ms, || {
         codec::encode(&execution.raster, &encoding, limits)
@@ -226,6 +259,12 @@ pub fn run(
         code: "metadata_not_preserved",
         message: "Export writes pixels only; source metadata is not preserved.",
     });
+    if execution.raster.has_transparency() && encoding.jpeg_background.is_some() {
+        diagnostics.warnings.push(crate::result::Warning {
+            code: "alpha_flattened",
+            message: "JPEG export composites transparency over the explicit background in linear sRGB.",
+        });
+    }
     Ok(RunResult {
         input: input.info,
         output: destination,
@@ -236,5 +275,7 @@ pub fn run(
         steps: execution.steps,
         resource_base: request.pipeline.resources.base_dir.clone(),
         jpeg_quality: encoding.jpeg_quality,
+        png_compression: encoding.png_compression,
+        jpeg_background: encoding.jpeg_background,
     })
 }

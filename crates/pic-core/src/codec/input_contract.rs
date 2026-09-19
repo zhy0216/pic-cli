@@ -3,13 +3,34 @@
 
 use crate::{ErrorCode, PicError, Result};
 
+#[derive(Default)]
+pub(super) struct Metadata {
+    pub declared_srgb: bool,
+    pub exif_orientation: Option<u8>,
+}
+
+impl Metadata {
+    fn exif(&mut self, bytes: &[u8]) -> Result<()> {
+        if self.exif_orientation.is_some() {
+            return Err(PicError::new(
+                ErrorCode::UnsupportedMetadata,
+                "multiple EXIF blocks are ambiguous",
+            ));
+        }
+        let (orientation, srgb) = super::exif::read(bytes)?;
+        self.exif_orientation = Some(orientation);
+        self.declared_srgb |= srgb;
+        Ok(())
+    }
+}
+
 fn malformed(message: &str) -> PicError {
     PicError::new(ErrorCode::DecodeFailed, message)
 }
 
-pub(super) fn png(bytes: &[u8]) -> Result<bool> {
+pub(super) fn png(bytes: &[u8]) -> Result<Metadata> {
     let mut offset = 8;
-    let mut declared_srgb = false;
+    let mut metadata = Metadata::default();
     let mut saw_header = false;
     while offset < bytes.len() {
         let header = bytes
@@ -43,7 +64,7 @@ pub(super) fn png(bytes: &[u8]) -> Result<bool> {
                 if data.len() != 1 || data[0] > 3 {
                     return Err(malformed("invalid PNG sRGB chunk"));
                 }
-                declared_srgb = true;
+                metadata.declared_srgb = true;
             }
             b"iCCP" | b"gAMA" | b"cHRM" | b"cICP" | b"mDCV" | b"cLLI" => {
                 return Err(PicError::new(
@@ -52,10 +73,7 @@ pub(super) fn png(bytes: &[u8]) -> Result<bool> {
                 ));
             }
             b"eXIf" => {
-                return Err(PicError::new(
-                    ErrorCode::UnsupportedMetadata,
-                    "EXIF handling is not implemented; supply pixels with orientation already applied and EXIF removed",
-                ));
+                metadata.exif(data)?;
             }
             b"acTL" => {
                 return Err(PicError::new(
@@ -67,7 +85,7 @@ pub(super) fn png(bytes: &[u8]) -> Result<bool> {
                 if !data.is_empty() || end != bytes.len() {
                     return Err(malformed("invalid PNG ending"));
                 }
-                return Ok(declared_srgb);
+                return Ok(metadata);
             }
             _ => (),
         }
@@ -76,8 +94,9 @@ pub(super) fn png(bytes: &[u8]) -> Result<bool> {
     Err(malformed("PNG has no IEND"))
 }
 
-pub(super) fn jpeg(bytes: &[u8]) -> Result<()> {
+pub(super) fn jpeg(bytes: &[u8]) -> Result<Metadata> {
     let mut offset = 2;
+    let mut metadata = Metadata::default();
     let mut saw_frame = false;
     let mut saw_scan = false;
     while offset < bytes.len() {
@@ -93,7 +112,7 @@ pub(super) fn jpeg(bytes: &[u8]) -> Result<()> {
         offset += 1;
         if marker == 0xd9 {
             return if saw_frame && saw_scan && offset == bytes.len() {
-                Ok(())
+                Ok(metadata)
             } else {
                 Err(malformed("invalid JPEG ending"))
             };
@@ -109,10 +128,7 @@ pub(super) fn jpeg(bytes: &[u8]) -> Result<()> {
             .get(offset + 2..offset + length)
             .ok_or_else(|| malformed("truncated JPEG segment data"))?;
         if marker == 0xe1 && data.starts_with(b"Exif\0\0") {
-            return Err(PicError::new(
-                ErrorCode::UnsupportedMetadata,
-                "EXIF handling is not implemented; supply pixels with orientation already applied and EXIF removed",
-            ));
+            metadata.exif(&data[6..])?;
         }
         if marker == 0xe2 && data.starts_with(b"ICC_PROFILE\0") {
             return Err(PicError::new(

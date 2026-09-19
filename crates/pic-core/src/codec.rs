@@ -1,5 +1,6 @@
 //! The only boundary that converts between encoded bytes, 8-bit sRGB and working pixels.
 
+mod exif;
 mod input_contract;
 
 use std::{
@@ -16,6 +17,7 @@ use crate::{
     ErrorCode, PicError, Result,
     document::Raster,
     limits::{ResourceLimits, read_limited},
+    operation::geometry::RgbaColor,
     result::{Diagnostics, Warning, timed},
 };
 
@@ -45,12 +47,18 @@ pub struct EncodeOptions {
     pub format: Option<Format>,
     /// None selects 90 for JPEG. Specifying this for PNG is an error.
     pub jpeg_quality: Option<u8>,
+    /// PNG deflate level 0..9 (default 6); invalid for JPEG.
+    pub png_compression: Option<u8>,
+    /// Explicit opaque sRGB background for linear-light JPEG flattening.
+    pub jpeg_background: Option<RgbaColor>,
 }
 
 #[derive(Debug)]
 pub struct ResolvedEncoding {
     pub format: Format,
     pub jpeg_quality: Option<u8>,
+    pub png_compression: Option<u8>,
+    pub jpeg_background: Option<RgbaColor>,
 }
 
 impl EncodeOptions {
@@ -77,15 +85,36 @@ impl EncodeOptions {
                 "JPEG quality must be in [1, 100]",
             ));
         }
-        if format == Format::Png && self.jpeg_quality.is_some() {
+        if format == Format::Png && (self.jpeg_quality.is_some() || self.jpeg_background.is_some())
+        {
             return Err(PicError::new(
                 ErrorCode::InvalidArgument,
-                "JPEG quality is not a PNG parameter",
+                "JPEG quality/background are not PNG parameters",
+            ));
+        }
+        if self.png_compression.is_some_and(|level| level > 9) {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                "PNG compression must be in [0, 9]",
+            ));
+        }
+        if format == Format::Jpeg && self.png_compression.is_some() {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                "PNG compression is not a JPEG parameter",
+            ));
+        }
+        if self.jpeg_background.is_some_and(|color| color.0[3] != 255) {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                "JPEG background must be opaque",
             ));
         }
         Ok(ResolvedEncoding {
             format,
             jpeg_quality: (format == Format::Jpeg).then_some(self.jpeg_quality.unwrap_or(90)),
+            png_compression: (format == Format::Png).then_some(self.png_compression.unwrap_or(6)),
+            jpeg_background: self.jpeg_background,
         })
     }
 }
@@ -96,6 +125,9 @@ pub struct ImageInfo {
     pub format: Format,
     pub width: u32,
     pub height: u32,
+    pub stored_width: u32,
+    pub stored_height: u32,
+    pub exif_orientation: Option<u8>,
     pub bit_depth: u8,
     pub color_type: &'static str,
     pub color_space: &'static str,
@@ -126,6 +158,9 @@ pub fn load(
     if loaded.info.color_source == "assumed_srgb" {
         diagnostics.warnings.push(Warning { code: "assumed_srgb", message: "Untagged input is interpreted as sRGB; no color profile conversion is performed." });
     }
+    if loaded.info.exif_orientation.is_some_and(|value| value != 1) {
+        diagnostics.warnings.push(Warning { code: "orientation_applied", message: "EXIF orientation was applied before canvas operations; dimensions and coordinates use normalized pixels." });
+    }
     Ok(loaded)
 }
 
@@ -136,12 +171,9 @@ fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<Loaded
             "input is not a recognized PNG or JPEG",
         )
     })?;
-    let (format, declared_srgb) = match image_format {
+    let (format, metadata) = match image_format {
         ImageFormat::Png => (Format::Png, input_contract::png(bytes)?),
-        ImageFormat::Jpeg => {
-            input_contract::jpeg(bytes)?;
-            (Format::Jpeg, false)
-        }
+        ImageFormat::Jpeg => (Format::Jpeg, input_contract::jpeg(bytes)?),
         _ => {
             return Err(PicError::new(
                 ErrorCode::UnsupportedFormat,
@@ -169,9 +201,18 @@ fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<Loaded
             ));
         }
     };
-    let decoded = image::DynamicImage::from_decoder(decoder)
-        .map_err(|e| PicError::image(e, ErrorCode::DecodeFailed))?
-        .into_rgba8();
+    let mut decoded = image::DynamicImage::from_decoder(decoder)
+        .map_err(|e| PicError::image(e, ErrorCode::DecodeFailed))?;
+    if let Some(value) = metadata.exif_orientation {
+        let orientation = image::metadata::Orientation::from_exif(value).ok_or_else(|| {
+            PicError::new(ErrorCode::UnsupportedMetadata, "invalid EXIF orientation")
+        })?;
+        decoded.apply_orientation(orientation);
+    }
+    let decoded = decoded.into_rgba8();
+    let (stored_width, stored_height) = (width, height);
+    let (width, height) = decoded.dimensions();
+    limits.check_dimensions(width, height)?;
     let mut pixels = Vec::new();
     pixels
         .try_reserve_exact(count)
@@ -190,22 +231,29 @@ fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<Loaded
         format,
         width,
         height,
+        stored_width,
+        stored_height,
+        exif_orientation: metadata.exif_orientation,
         bit_depth: 8,
         color_type,
         color_space: "srgb",
-        color_source: if declared_srgb {
+        color_source: if metadata.declared_srgb {
             "declared_srgb"
         } else {
             "assumed_srgb"
         },
         has_alpha: color.has_alpha(),
         has_transparency: raster.has_transparency(),
-        orientation: "stored_pixels",
+        orientation: if metadata.exif_orientation.is_some() {
+            "exif_normalized"
+        } else {
+            "stored_pixels"
+        },
     };
     Ok(LoadedImage { raster, info })
 }
 
-fn srgb_to_linear(sample: u8) -> f32 {
+pub(crate) fn srgb_to_linear(sample: u8) -> f32 {
     let value = f32::from(sample) / 255.0;
     if value <= 0.04045 {
         value / 12.92
@@ -230,32 +278,49 @@ pub fn encode(
     limits: &ResourceLimits,
 ) -> Result<Vec<u8>> {
     let count = limits.check_dimensions(raster.width(), raster.height())?;
-    if options.format == Format::Jpeg && raster.has_transparency() {
-        return Err(PicError::new(
-            ErrorCode::AlphaNotSupported,
-            "JPEG cannot preserve transparency; export PNG (flattening is not implemented)",
-        ));
-    }
     // Validate even for library callers constructing ResolvedEncoding themselves.
     let options = EncodeOptions {
         format: Some(options.format),
         jpeg_quality: options.jpeg_quality,
+        png_compression: options.png_compression,
+        jpeg_background: options.jpeg_background,
     }
     .resolve(Path::new("output"))?;
+    if options.format == Format::Jpeg
+        && raster.has_transparency()
+        && options.jpeg_background.is_none()
+    {
+        return Err(PicError::new(
+            ErrorCode::AlphaNotSupported,
+            "JPEG cannot preserve transparency; export PNG or specify an opaque --jpeg-background",
+        ));
+    }
     let channels = if options.format == Format::Png { 4 } else { 3 };
     let mut samples = Vec::new();
     samples
         .try_reserve_exact(count * channels)
         .map_err(|_| PicError::new(ErrorCode::ResourceLimit, "cannot allocate export samples"))?;
+    let background = options.jpeg_background.map(RgbaColor::linear);
     for pixel in raster.pixels() {
-        samples.extend(pixel[..3].iter().map(|value| linear_to_srgb(*value)));
+        if let Some(background) = background {
+            samples.extend((0..3).map(|channel| {
+                linear_to_srgb(pixel[channel] * pixel[3] + background[channel] * (1.0 - pixel[3]))
+            }));
+        } else {
+            samples.extend(pixel[..3].iter().map(|value| linear_to_srgb(*value)));
+        }
         if channels == 4 {
             samples.push((pixel[3] * 255.0).round() as u8);
         }
     }
     let mut encoded = Vec::new();
     match options.format {
-        Format::Png => image::codecs::png::PngEncoder::new(&mut encoded).write_image(
+        Format::Png => image::codecs::png::PngEncoder::new_with_quality(
+            &mut encoded,
+            image::codecs::png::CompressionType::Level(options.png_compression.unwrap_or(6)),
+            image::codecs::png::FilterType::Adaptive,
+        )
+        .write_image(
             &samples,
             raster.width(),
             raster.height(),

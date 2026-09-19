@@ -7,6 +7,8 @@ description = "The image, operation and pipeline core for pic-cli"
 
 [dependencies]
 image.workspace = true
+fast_image_resize.workspace = true
+bytemuck.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

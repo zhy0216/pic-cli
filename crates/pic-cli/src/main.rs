@@ -12,7 +12,13 @@ use pic_core::{
     capabilities::{self, Capabilities},
     codec::{self, EncodeOptions, Format, ImageInfo},
     limits::ResourceLimits,
-    operation::OperationSpec,
+    operation::{
+        Operation,
+        geometry::{
+            Anchor, CanvasParams, CropParams, FlipAxis, FlipParams, Interpolation, ResizeParams,
+            RgbaColor, RotateParams,
+        },
+    },
     pipeline::{self, Pipeline, RunRequest, RunResult},
     result::{Diagnostics, Envelope, timed},
 };
@@ -22,7 +28,7 @@ use serde::Serialize;
 #[command(
     version,
     about = "Explicit image processing for agents",
-    long_about = "Explicit image processing for agents. Foundation release: PNG/JPEG info, empty pipelines and identity only. Query capabilities for exact support."
+    long_about = "Explicit image processing for agents. PNG/JPEG codecs and ordered geometry operations in linear sRGB. Coordinates use the current canvas after EXIF normalization. Query capabilities for exact support."
 )]
 struct Cli {
     /// Emit one compact, versioned JSON result (including errors/help/version)
@@ -40,7 +46,7 @@ enum Command {
     Capabilities,
     /// Decode and inspect an accepted PNG/JPEG image
     Info { input: PathBuf },
-    /// Execute a schema-v1 pipeline (empty or identity operations)
+    /// Execute a schema-v1 pipeline in array order on the current canvas
     Run {
         #[command(flatten)]
         image: ImageArgs,
@@ -50,6 +56,71 @@ enum Command {
     },
     /// Decode and re-encode via the same core as a one-step identity pipeline
     Identity(ImageArgs),
+    /// Extract an in-bounds rectangle; origin top-left, x right, y down
+    Crop {
+        #[command(flatten)]
+        image: ImageArgs,
+        #[arg(long)]
+        x: u32,
+        #[arg(long)]
+        y: u32,
+        #[arg(long)]
+        width: u32,
+        #[arg(long)]
+        height: u32,
+    },
+    /// Resize; one dimension preserves aspect ratio, both set the exact size
+    Resize {
+        #[command(flatten)]
+        image: ImageArgs,
+        #[arg(long)]
+        width: Option<u32>,
+        #[arg(long)]
+        height: Option<u32>,
+        /// nearest or bilinear (antialiased downsampling in linear light)
+        #[arg(long, default_value = "bilinear")]
+        filter: Interpolation,
+    },
+    /// Rotate clockwise about the canvas center, expanding bounds by default
+    Rotate {
+        #[command(flatten)]
+        image: ImageArgs,
+        /// Finite clockwise degrees in [-360, 360]; right angles copy exact pixels
+        #[arg(long, allow_hyphen_values = true)]
+        degrees: f64,
+        /// Keep current dimensions; clip rotated content at the canvas bounds
+        #[arg(long)]
+        keep_size: bool,
+        /// nearest or bilinear; non-square keep-size quarter turns also resample
+        #[arg(long, default_value = "bilinear")]
+        filter: Interpolation,
+        /// Outside samples: sRGB #RRGGBB or #RRGGBBAA
+        #[arg(long, default_value = "#00000000")]
+        background: RgbaColor,
+    },
+    /// Mirror the current canvas horizontally or vertically
+    Flip {
+        #[command(flatten)]
+        image: ImageArgs,
+        /// horizontal or vertical
+        #[arg(long)]
+        axis: FlipAxis,
+    },
+    /// Change canvas dimensions by padding or clipping, without scaling
+    Canvas {
+        #[command(flatten)]
+        image: ImageArgs,
+        #[arg(long)]
+        width: u32,
+        #[arg(long)]
+        height: u32,
+        /// top_left, top, top_right, left, center, right, bottom_left, bottom, bottom_right
+        #[arg(long, default_value = "center")]
+        anchor: Anchor,
+        /// Padding only (existing alpha stays intact): sRGB #RRGGBB or #RRGGBBAA
+        #[arg(long, default_value = "#00000000")]
+        background: RgbaColor,
+    },
 }
 
 #[derive(Args)]
@@ -64,6 +135,12 @@ struct ImageArgs {
     /// JPEG quality, 1..100 (default 90); invalid for PNG
     #[arg(long, value_parser = clap::value_parser!(u8).range(1..=100))]
     jpeg_quality: Option<u8>,
+    /// PNG deflate level 0..9 (default 6), adaptive row filter; invalid for JPEG
+    #[arg(long, value_parser = clap::value_parser!(u8).range(0..=9))]
+    png_compression: Option<u8>,
+    /// Flatten JPEG alpha over this opaque #RRGGBB color in linear sRGB
+    #[arg(long)]
+    jpeg_background: Option<RgbaColor>,
     /// Atomically replace an existing regular output file
     #[arg(long)]
     overwrite: bool,
@@ -87,6 +164,11 @@ impl Command {
             Self::Info { .. } => "info",
             Self::Run { .. } => "run",
             Self::Identity(_) => "identity",
+            Self::Crop { .. } => "crop",
+            Self::Resize { .. } => "resize",
+            Self::Rotate { .. } => "rotate",
+            Self::Flip { .. } => "flip",
+            Self::Canvas { .. } => "canvas",
         }
     }
 
@@ -105,16 +187,97 @@ impl Command {
                 execute_image(image, pipeline, &limits, diagnostics)
             }
             Self::Identity(image) => {
-                let pipeline = timed(&mut diagnostics.timings.validation_ms, || {
-                    let cwd = std::env::current_dir().map_err(|e| {
-                        PicError::io("read working directory", std::path::Path::new("."), e)
-                    })?;
-                    Pipeline::single(OperationSpec::identity(), &cwd, &limits)
-                })?;
-                execute_image(image, pipeline, &limits, diagnostics)
+                execute_operation(image, Operation::Identity, &limits, diagnostics)
             }
+            Self::Crop {
+                image,
+                x,
+                y,
+                width,
+                height,
+            } => execute_operation(
+                image,
+                Operation::Crop(CropParams {
+                    x,
+                    y,
+                    width,
+                    height,
+                }),
+                &limits,
+                diagnostics,
+            ),
+            Self::Resize {
+                image,
+                width,
+                height,
+                filter,
+            } => execute_operation(
+                image,
+                Operation::Resize(ResizeParams {
+                    width,
+                    height,
+                    filter,
+                }),
+                &limits,
+                diagnostics,
+            ),
+            Self::Rotate {
+                image,
+                degrees,
+                keep_size,
+                filter,
+                background,
+            } => execute_operation(
+                image,
+                Operation::Rotate(RotateParams {
+                    degrees,
+                    expand: !keep_size,
+                    filter,
+                    background,
+                }),
+                &limits,
+                diagnostics,
+            ),
+            Self::Flip { image, axis } => execute_operation(
+                image,
+                Operation::Flip(FlipParams { axis }),
+                &limits,
+                diagnostics,
+            ),
+            Self::Canvas {
+                image,
+                width,
+                height,
+                anchor,
+                background,
+            } => execute_operation(
+                image,
+                Operation::Canvas(CanvasParams {
+                    width,
+                    height,
+                    anchor,
+                    background,
+                }),
+                &limits,
+                diagnostics,
+            ),
         }
     }
+}
+
+fn execute_operation(
+    image: ImageArgs,
+    operation: Operation,
+    limits: &ResourceLimits,
+    diagnostics: &mut Diagnostics,
+) -> Result<Data> {
+    let pipeline = timed(&mut diagnostics.timings.validation_ms, || {
+        operation.validate()?;
+        let cwd = std::env::current_dir()
+            .map_err(|e| PicError::io("read working directory", std::path::Path::new("."), e))?;
+        Pipeline::single(operation.to_spec(), &cwd, limits)
+    })?;
+    execute_image(image, pipeline, limits, diagnostics)
 }
 
 fn execute_image(
@@ -131,6 +294,8 @@ fn execute_image(
             encoding: EncodeOptions {
                 format: image.format,
                 jpeg_quality: image.jpeg_quality,
+                png_compression: image.png_compression,
+                jpeg_background: image.jpeg_background,
             },
             overwrite: image.overwrite,
         },
