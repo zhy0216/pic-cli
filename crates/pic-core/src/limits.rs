@@ -17,6 +17,10 @@ pub struct ResourceLimits {
     pub max_project_bytes: u64,
     /// Includes inactive, still traceable history.
     pub max_history_operations: usize,
+    /// Combined managed checkpoint and preview files; never includes required assets.
+    pub max_cache_disk_bytes: u64,
+    /// Retained derived rasters and cache serialization/read scratch admission.
+    pub max_cache_memory_bytes: u64,
 }
 
 impl Default for ResourceLimits {
@@ -30,6 +34,8 @@ impl Default for ResourceLimits {
             max_operations: 10_000,
             max_project_bytes: 64 * 1024 * 1024,
             max_history_operations: 100_000,
+            max_cache_disk_bytes: 512 * 1024 * 1024,
+            max_cache_memory_bytes: 256 * 1024 * 1024,
         }
     }
 }

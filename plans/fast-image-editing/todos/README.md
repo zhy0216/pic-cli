@@ -18,7 +18,7 @@ default_reasoning_effort: max
 | [done/02-geometry-codecs.md](done/02-geometry-codecs.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 几何/编解码参数、EXIF 方向与 alpha 完成；40 个测试和 21 个 release CLI 回归通过 |
 | [done/03-adjustments-filters.md](done/03-adjustments-filters.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 调色/曲线/灰度/反相/高斯/锐化完成；58 个测试与 25 个 release CLI 回归通过 |
 | [done/04-project-history.md](done/04-project-history.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 自包含素材、不可变 ops、原子发布与跨进程历史完成；77 项测试和 35 项 release CLI 回归通过 |
-| 05-replay-preview.md | P0 | hard | codex（继承） | gpt-6-astra / max | pending | 检查点、缓存失效、坐标预览、修改旧步骤和模板 |
+| [done/05-replay-preview.md](done/05-replay-preview.md) | P0 | hard | codex（继承） | gpt-6-astra / max | done | 精确检查点、预算/失效、坐标预览、旧步骤修改和显式模板完成；90 项测试与 40 项 release CLI 回归通过 |
 | 06-layers-masks.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 图层、无损变换、混合、蒙版、选区 |
 | 07-groups-text-adjustment.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 分组、剪贴蒙版、文字和调整层 |
 | 11-core-performance.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | 普通编辑与工程模式端到端测量和优化 |
@@ -32,7 +32,7 @@ default_reasoning_effort: max
 2. [done/02-geometry-codecs.md](done/02-geometry-codecs.md)；依赖 01-foundation.md；已完成并保留验收证据。
 3. [done/03-adjustments-filters.md](done/03-adjustments-filters.md)；依赖 02-geometry-codecs.md；已完成并保留验收证据。
 4. [done/04-project-history.md](done/04-project-history.md)；依赖 03-adjustments-filters.md；已完成并保留验收证据。
-5. 05-replay-preview.md；依赖 04-project-history.md。
+5. [done/05-replay-preview.md](done/05-replay-preview.md)；依赖 04-project-history.md；已完成并保留验收证据。
 6. 06-layers-masks.md；依赖 05-replay-preview.md。
 7. 07-groups-text-adjustment.md；依赖 06-layers-masks.md。
 8. 11-core-performance.md；依赖 07-groups-text-adjustment.md。

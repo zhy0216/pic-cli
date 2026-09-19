@@ -47,6 +47,8 @@ struct Cli {
 enum Command {
     /// Self-contained .pic projects, immutable ops, revisions and undo/redo
     Project {
+        #[command(flatten)]
+        cache: project::CacheArgs,
         #[command(subcommand)]
         command: project::ProjectCommand,
     },
@@ -258,12 +260,16 @@ enum Data {
     ProjectChange(Box<pic_core::project::ProjectChange>),
     ProjectInspection(Box<pic_core::project::ProjectInspection>),
     ProjectExport(Box<pic_core::project::ProjectExport>),
+    ProjectPreview(Box<pic_core::project::ProjectPreview>),
+    Checkpoint(Box<pic_core::project::CheckpointResult>),
+    CacheClear(pic_core::project::CacheClearResult),
+    TemplateExport(Box<pic_core::project::TemplateExport>),
 }
 
 impl Command {
     fn name(&self) -> &'static str {
         match self {
-            Self::Project { command } => command.name(),
+            Self::Project { command, .. } => command.name(),
             Self::Version => "version",
             Self::Capabilities => "capabilities",
             Self::Info { .. } => "info",
@@ -287,7 +293,7 @@ impl Command {
     fn execute(self, diagnostics: &mut Diagnostics) -> Result<Data> {
         let limits = ResourceLimits::default();
         match self {
-            Self::Project { command } => command.execute(&limits, diagnostics),
+            Self::Project { command, cache } => command.execute(&cache.limits(limits), diagnostics),
             Self::Version => Ok(Data::Version {
                 version: env!("CARGO_PKG_VERSION"),
             }),

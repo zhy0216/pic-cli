@@ -1,6 +1,6 @@
 # 自包含工程与持久化历史
 
-任务 04 实现单图 `.pic` 工程：保存原始素材和不可变语义 ops，通过原有 `Pipeline` / `Operation` 完整重放任意已提交步骤。RGBA32F 的负值、高亮、alpha 和逻辑边界与直接管线相同；只在最终导出/预览编码时量化。没有第二份可编辑文档状态、像素检查点或预览缓存。
+任务 04 实现单图 `.pic` 工程：保存原始素材和不可变语义 ops，通过原有 `Pipeline` / `Operation` 重放任意已提交步骤。RGBA32F 的负值、高亮、alpha 和逻辑边界与直接管线相同；只在最终导出/预览编码时量化。任务 05 在同一恢复入口增加可丢弃的精确检查点与预览缓存，没有第二份可编辑文档状态；新增命令、身份/预算与验收见 [重放与预览契约](replay-preview.md)。
 
 ## 命令与并发约定
 
@@ -39,11 +39,11 @@ pic-cli project export work.pic --output current.png --json
 | apply | `--expect-revision` 必填；`--revision` / `--from-revision` 可选择任意已提交步骤，缺省用当前指针；整个管线成功后提交为一组 |
 | inspect | 缺省当前 revision；返回选中步骤的画布尺寸、稳定 canvas ID、op/group ID、完整历史记录、活动 revision 集合与有序组边界；不移动指针 |
 | undo / redo | `--expect-revision` 必填；只沿当前活动路径跨一个整组边界；不增加 ops |
-| export / preview | 缺省当前 revision；都只读，使用统一 codec 及 PNG/JPEG 编码/覆盖参数；输出必须在该工程目录之外 |
+| export / preview | 缺省当前 revision；使用统一 codec 及 PNG/JPEG 编码/覆盖参数；输出必须在该工程目录之外。都不修改权威历史，preview 可写派生缓存并指定区域/尺寸 |
 
 `--expected-revision` 是 `--expect-revision` 的别名。expected_revision 与编辑基点分开：若当前 r3，读取 r1 后用 `--expect-revision r1` 修改会冲突；必须显式使用当前 r3，同时以 `--revision r1` 选择基点。锁内读取当前 manifest，并在最终发布前再次比较 expected_revision 和整个原 manifest 快照。并发同一 expected revision 的 apply 只有一个成功，失败者返回 `revision_conflict`。
 
-每一步获得项目内稳定且不复用已提交编号的 `opN` / `rN`；每组为 `cN`。调用方应使用返回 ID，不能把编号当活动历史索引。一次三步组的 undo 从 r3 回 r0，但 r1/r2 始终可读取。若从 r1 追加一步得到 r4，活动组边界变为 r0 → r1 → r4；undo r4 回 r1，再 undo 回 r0。原 c1/r2/r3 文件不变且可读取，redo 只沿新路径走，不再回原 r3。尚未提供命名分支、合并或原地修改旧步骤。
+每一步获得项目内稳定且不复用已提交编号的 `opN` / `rN`；每组为 `cN`。调用方应使用返回 ID，不能把编号当活动历史索引。一次三步组的 undo 从 r3 回 r0，但 r1/r2 始终可读取。若从 r1 追加一步得到 r4，活动组边界变为 r0 → r1 → r4；undo r4 回 r1，再 undo 回 r0。原 c1/r2/r3 文件不变且可读取，redo 只沿新路径走，不再回原 r3。任务 05 的 revise 可修改旧步骤参数并追加新后缀记录；始终不原地修改旧步骤，尚未提供命名分支或合并。
 
 ## 权威文件与验证
 
@@ -53,19 +53,22 @@ work.pic/
   .lock                    # 稳定锁 inode；写入端不得替换或删除
   assets/<sha256>           # 原始 PNG/JPEG 文件字节，不依赖扩展名
   ops/<sha256>.json         # 不可变组记录；只有 manifest 引用的才已提交
+  checkpoints/<key>.bin     # 可丢弃的完整浮点状态（按需生成）
+  cache/<key>.bin           # 可丢弃的指定预览规格浮点结果
+  .cache-lock              # 派生缓存发布/淘汰独立锁，不参与历史提交
 ```
 
 manifest 的 `source={sha256,bytes}` 引用内嵌原始素材；`imported_from` 仅供溯源，绝不用于恢复时找文件。相同文件字节只存一份，已存在资产重新校验后复用；不同编码的同像素图片不视作同一文件资产。每个 ops 文件包含结构版本、commit ID、组 base/output revision 和 `steps` 数组；步骤包含 op ID、base/output revision、规范化 `operation={op,op_version,target,params}`、输入与结果资产引用。目前直接单图操作的输入依赖都是源资产，结果资产为空，后续图层任务扩展同一结构。
 
-打开时只读取 manifest 索引，校验所有已提交 ops（包括失效 redo 路径），其摘要、结构版本、操作语义版本、ID 唯一性/顺序、前向 revision 链、组边界与规范化参数。选中步骤恢复时验证源素材长度和 SHA-256 后，直接解码这些已验证字节，避免在哈希验证与解码之间再次按路径读取。修改素材或 ops 字节会得到 `integrity_mismatch`；缺必需素材为 `asset_missing`；缺 ops 为 `file_not_found`。未知结构/op/像素语义版本为 `unsupported_version`，不使用新默认值猜测历史。engine_version 记录创建版本，重放兼容性以结构/op/像素语义版本校验。
+打开时只读取 manifest 索引，校验所有已提交 ops（包括失效 redo 路径），其摘要、结构版本、操作语义版本、ID 唯一性/顺序、前向 revision 链、组边界与规范化参数。选中步骤恢复时始终验证源素材长度和 SHA-256，未命中有效检查点时直接解码这些已验证字节，避免在哈希验证与解码之间再次按路径读取。修改素材或 ops 字节会得到 `integrity_mismatch`；缺必需素材为 `asset_missing`；缺 ops 为 `file_not_found`。未知结构/op/像素语义版本为 `unsupported_version`，不使用新默认值猜测历史。engine_version 记录创建版本，重放兼容性以结构/op/像素语义版本校验。
 
-已有只读 `Project` 对象保持打开时的 manifest 快照；下一次 CLI 调用重新打开获取最新状态。结构查询的画布信息同样经过真实重放，不保存与 ops 独立的尺寸状态。
+已有只读 `Project` 对象保持打开时的 manifest 快照；下一次 CLI 调用重新打开获取最新状态。结构查询的画布信息经过受验证的检查点恢复或真实重放，不保存与 ops 独立的权威尺寸状态。
 
 ## 发布、路径与预算
 
 写入操作持有 `.lock` 的操作系统排他锁直到完成；锁随进程关闭/退出释放，不使用容易遗留的 PID 锁文件。只读操作不等写锁。创建工程在同父目录临时目录里完成资产与 manifest，最后通过 no-clobber rename 一次发布；即使竞争者创建了空目录也不覆盖。
 
-apply 完成校验、全量恢复和新操作执行后，检查总预算，再完整写入不可变 ops，最后原子替换 manifest。素材、ops、manifest 使用目录内临时文件写入、flush、关闭、rename；普通错误清理临时文件。执行、资产写入、ops 写入或 manifest 发布失败不改变原已发布历史。manifest 发布前留下的未引用 ops/资产不成为成功历史；强制终止可能遗留临时目录/文件或未引用记录，目前不做垃圾回收。
+apply 完成校验、检查点恢复或重放和新操作执行后，检查总预算，再完整写入不可变 ops，最后原子替换 manifest。素材、ops、manifest 使用目录内临时文件写入、flush、关闭、rename；普通错误清理临时文件。执行、资产写入、ops 写入或 manifest 发布失败不改变原已发布历史。manifest 发布前留下的未引用 ops/资产不成为成功历史；强制终止可能遗留临时目录/文件或未引用记录，目前不做垃圾回收。
 
 内部读写通过固定目录句柄和 `openat` / no-follow 访问，资产与 ops 引用仅接受 64 位小写 SHA-256，不接受绝对路径、`..` 或任意文件名。工程根目录、内部目录、manifest、素材、ops、锁文件的符号链接被拒绝；文件必须为普通文件。输入素材按普通 codec 规则读取并内嵌，允许输入指向普通文件的符号链接。project export/preview 拒绝规范化后位于该工程内的路径，避免覆盖权威文件。
 
@@ -89,7 +92,7 @@ apply、undo、redo 都在发布前检查新 manifest 加已有/新增 commit �
 | `validation_ms` | CLI apply 的管线文件读取、解析与参数校验；export/preview 的编码选项、输出路径、覆盖及工程内输出限制检查 |
 | `read_ms` | create 的原始图像路径解析与字节读取；`Project::load` 的 manifest/ops 读取、JSON 解析、摘要/版本/参数及历史关系校验；`restore` 的源资产读取、哈希与长度校验 |
 | `decode_ms` | 原始输入或已验证源资产的图像准入、解码、EXIF 归一化及工作像素转换 |
-| `process_ms` | 恢复选定 revision 的管线构建与完整重放，以及 apply 的新操作执行；inspect、undo/redo、export/preview 所需的重放也计入 |
+| `process_ms` | 恢复选定 revision 的管线构建与剩余步骤重放，以及 apply 的新操作执行；inspect、undo/redo、export/preview 所需的重放也计入 |
 | `encode_ms` | export/preview 的最终像素量化、透明度处理和图像压缩编码 |
 | `write_ms` | 工程资产/ops/manifest 的持久化、临时文件/目录创建、flush、关闭与原子发布，以及 export/preview 的输出发布；存储时的摘要计算和发布前 manifest 重读、解析、expected_revision/快照复核也在该计时范围内 |
 | `total_ms` | CLI 从 main 入口到结果序列化前的全部耗时，包括 CLI 解析、工程写锁等待和未分类开销；不包含进程启动、stdout 序列化/写入及进程退出 |
@@ -110,4 +113,4 @@ apply、undo、redo 都在发布前检查新 manifest 加已有/新增 commit �
 | 精度与统一语义 | 跨提交逐步骤比较直接管线与重放的每个 f32 位；真实 PNG 导出解码像素一致，含负值/HDR、透明色与插值 |
 | 总预算边界 | `undo_redo_account_for_all_commit_bytes_before_replacing_manifest`：r0→r10 与 compact→pretty 均在紧预算下失败，原 manifest 完全不变 |
 
-全仓库校验与 release CLI 验收命令见 README。检查点、局部/缩放预览、坐标映射、参数修改模板属于任务 05；本任务的 preview 仅提供指定步骤的全尺寸只读导出。
+全仓库校验与 release CLI 验收命令见 README。以上证据对应任务 04；任务 05 已扩展检查点、局部/缩放预览、坐标映射、参数修改和模板，新增验收见 [重放与预览契约](replay-preview.md)。

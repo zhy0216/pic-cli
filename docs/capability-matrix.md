@@ -1,6 +1,6 @@
 # 功能与兼容性矩阵
 
-当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜与任务 04 工程历史。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
+当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜、任务 04 工程历史及任务 05 重放/预览。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
 
 ## 三类功能目标
 
@@ -10,7 +10,7 @@
 | 图层与合成 | 图层、位置/变换、混合模式、蒙版/选区、分组、文字、调整层 | not_implemented | 后续直接编辑任务继续实现 |
 | 智能编辑 | 智能抠图、主体分割、智能修复、生成填充/扩图 | not_implemented，roadmap | 仅未来可做，不选型、不接模型、不要求 LLM 参与 |
 
-源素材 + 不可变 ops 的工程历史、跨进程续编和全尺寸步骤预览已实现，服务于前两类目标；检查点、区域/缩放预览与模板仍待后续实现。
+源素材 + 不可变 ops 的工程历史、跨进程续编、精确检查点、区域/缩放预览和显式绑定模板已实现，服务于前两类目标；当前状态仍为单画布，图层扩展留给后续任务。
 
 ## 当前精确能力
 
@@ -28,7 +28,7 @@
 | adjust / levels / curves / grayscale / invert / blur / sharpen | supported | EV、亮度、对比度、饱和度、色阶、有序折线曲线、灰度、反相、高斯模糊及 unsharp；线性 RGBA32F，CLI/JSON 同核心，详见 [调色与滤镜契约](adjustments-filters.md) |
 | 图层、蒙版、分组、文字、调整层 | not_implemented | 仅后续目标，无假图层状态 |
 | project / revision / replay / undo / redo | supported | 自包含素材、SHA-256 去重与完整性校验、不可变 ops、整组原子提交、expected_revision 冲突控制、任意已提交步骤完整重放与续编；Linux 验证，详见 [工程契约](project-history.md) |
-| preview / checkpoint / template | partial | 已有只读全尺寸步骤预览；检查点、区域/缩放预览、坐标映射和操作模板待任务 05 |
+| preview / checkpoint / revise / template | partial | 单画布精确 RGBA32F 检查点与独立预览缓存、磁盘/内存预算、损坏回退、任意步骤/区域/尺寸及双向坐标映射、旧步骤参数修改与前缀复用；模板新输入/目标/完整参数必填，暂不支持外部蒙版等内容依赖操作。见 [重放与预览契约](replay-preview.md) |
 | 智能能力 | not_implemented / roadmap | 无后端、模型依赖、凭据或网络请求 |
 
 ## 与 Photoshop 等工具的对齐维度
@@ -41,4 +41,4 @@
 | 文件保真 | 标准 PNG/JPEG 像素导出；归一化主图 EXIF 方向，拒绝未支持色彩与无效 EXIF | 元数据保留、PSD 往返、RAW、专业印刷色彩或高位深输入 |
 | 执行时延 | 本机新进程启动和小图 codec 的 30 次热文件缓存基线 | 比 Photoshop 或其他 CLI 更快、照片级编辑或跨平台时延门槛 |
 
-具体输入限制和未来检查点精度见 [执行契约](foundation-contract.md)，基础测试见 [任务 01 验收记录](foundation-validation.md)，几何/EXIF 与实际进程验证见 [任务 02 契约与验收](geometry-codecs.md)，调色/滤镜及混合管线验证见 [任务 03 契约与验收](adjustments-filters.md)。
+具体输入限制和检查点精度约束见 [执行契约](foundation-contract.md)，基础测试见 [任务 01 验收记录](foundation-validation.md)，几何/EXIF 与实际进程验证见 [任务 02 契约与验收](geometry-codecs.md)，调色/滤镜及混合管线验证见 [任务 03 契约与验收](adjustments-filters.md)。

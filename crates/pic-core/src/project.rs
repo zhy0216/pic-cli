@@ -1,8 +1,11 @@
 //! Self-contained source assets and immutable semantic ops. No raster snapshot is authoritative.
 //! Readers use one manifest snapshot; writers hold the stable `.lock` through publication.
 
+mod cache;
 mod history;
+mod preview;
 mod storage;
+mod template;
 
 use std::{
     fs,
@@ -20,9 +23,14 @@ use crate::{
     result::{Diagnostics, Warning, timed},
 };
 
+pub use cache::{CacheClearResult, CacheHit, CheckpointResult, ImageSize, ReplayReport};
 pub use history::{AssetRef, Commit, CommitRef, CommittedOp, INITIAL_REVISION, Manifest};
 use history::{History, invalid};
+pub use preview::{AffineMapping, CoordinateMapping, PreviewRequest, ProjectPreview};
 use storage::Storage;
+pub use template::{
+    OperationTemplate, TemplateBindings, TemplateExport, TemplateRunRequest, TemplateStep,
+};
 
 pub struct Project {
     storage: Storage,
@@ -30,12 +38,14 @@ pub struct Project {
     manifest_bytes: Vec<u8>,
     history: History,
     limits: ResourceLimits,
+    memory: std::cell::RefCell<cache::MemoryCache>,
 }
 
 pub struct RestoredRevision {
     pub revision: RevisionId,
     pub raster: Raster,
     pub operations_replayed: usize,
+    pub replay: ReplayReport,
 }
 
 #[derive(Debug, Serialize)]
@@ -49,6 +59,7 @@ pub struct ProjectChange {
     pub published: bool,
     pub width: u32,
     pub height: u32,
+    pub replay: ReplayReport,
 }
 
 #[derive(Debug, Serialize)]
@@ -62,6 +73,7 @@ pub struct ProjectInspection {
     pub width: u32,
     pub height: u32,
     pub operations_replayed: usize,
+    pub replay: ReplayReport,
     pub active_revisions: Vec<String>,
     pub group_boundaries: Vec<String>,
     pub manifest: Manifest,
@@ -83,6 +95,14 @@ pub struct ExportRequest<'a> {
     pub overwrite: bool,
 }
 
+pub struct ReviseRequest<'a> {
+    pub project: &'a Path,
+    /// A step on the current revision's ancestry, never a numeric position.
+    pub step_revision: &'a str,
+    pub params: serde_json::Value,
+    pub expected_revision: &'a str,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ProjectExport {
     pub project: PathBuf,
@@ -93,6 +113,7 @@ pub struct ProjectExport {
     pub width: u32,
     pub height: u32,
     pub operations_replayed: usize,
+    pub replay: ReplayReport,
     pub format: codec::Format,
     pub jpeg_quality: Option<u8>,
     pub png_compression: Option<u8>,
@@ -171,6 +192,7 @@ impl Project {
             published: true,
             width: loaded.raster.width(),
             height: loaded.raster.height(),
+            replay: ReplayReport::default(),
         })
     }
 
@@ -200,6 +222,7 @@ impl Project {
             manifest_bytes,
             history,
             limits: limits.clone(),
+            memory: cache::new_memory(),
         })
     }
 
@@ -213,7 +236,7 @@ impl Project {
         &self.storage.path
     }
 
-    /// Full replay through the existing pipeline. No intermediate codec or quantization.
+    /// Restore a validated exact checkpoint or replay through the existing pipeline.
     pub fn restore(
         &self,
         revision: Option<&str>,
@@ -221,29 +244,50 @@ impl Project {
     ) -> Result<RestoredRevision> {
         let revision = revision.unwrap_or(&self.manifest.current_revision.0);
         let steps = self.history.path(revision)?;
-        let bytes = timed(&mut diagnostics.timings.read_ms, || {
-            let bytes = self
-                .storage
-                .asset(&self.manifest.source.sha256, self.limits.max_input_bytes)?;
-            if bytes.len() as u64 != self.manifest.source.bytes {
-                return Err(PicError::new(
-                    ErrorCode::IntegrityMismatch,
-                    "source asset length does not match manifest",
-                ));
+        let bytes = self.verified_source(&steps, diagnostics)?;
+        let keys = self.prefix_keys(&steps)?;
+        let mut replay = ReplayReport::default();
+        let mut cached = None;
+        for index in (0..keys.len()).rev() {
+            if let Some((value, tier)) =
+                self.cache_get(storage::DerivedKind::Checkpoint, &keys[index], diagnostics)
+            {
+                // A checkpoint must retain the complete canvas, never a preview region.
+                if value.canvas != ImageSize::of(&value.raster) {
+                    continue;
+                }
+                replay.reused_steps = index;
+                replay.cache_hit = Some(CacheHit {
+                    kind: "checkpoint",
+                    tier,
+                    key: keys[index].clone(),
+                    revision: if index == 0 {
+                        RevisionId(INITIAL_REVISION.into())
+                    } else {
+                        steps[index - 1].revision.clone()
+                    },
+                });
+                cached = Some(value.raster);
+                break;
             }
-            Ok(bytes)
-        })?;
-        let input = codec::load_bytes(
-            &bytes,
-            self.path()
-                .join("assets")
-                .join(&self.manifest.source.sha256),
-            &self.limits,
-            diagnostics,
-        )?;
+        }
+        let input = match cached {
+            Some(raster) => raster,
+            None => {
+                codec::load_bytes(
+                    &bytes,
+                    self.path()
+                        .join("assets")
+                        .join(&self.manifest.source.sha256),
+                    &self.limits,
+                    diagnostics,
+                )?
+                .raster
+            }
+        };
         let raster = timed(&mut diagnostics.timings.process_ms, || {
-            let mut raster = input.raster;
-            for chunk in steps.chunks(self.limits.max_operations.max(1)) {
+            let mut raster = input;
+            for chunk in steps[replay.reused_steps..].chunks(self.limits.max_operations.max(1)) {
                 let pipeline = Pipeline::new(
                     PipelineSpec {
                         schema_version: PIPELINE_SCHEMA_VERSION,
@@ -253,13 +297,17 @@ impl Project {
                     &self.limits,
                 )?;
                 raster = pipeline.execute(raster)?.raster;
+                replay
+                    .recomputed_revisions
+                    .extend(chunk.iter().map(|step| step.revision.clone()));
             }
             Ok(raster)
         })?;
         Ok(RestoredRevision {
             revision: RevisionId(revision.into()),
             raster,
-            operations_replayed: steps.len(),
+            operations_replayed: replay.recomputed_revisions.len(),
+            replay,
         })
     }
 
@@ -280,6 +328,7 @@ impl Project {
             width: restored.raster.width(),
             height: restored.raster.height(),
             operations_replayed: restored.operations_replayed,
+            replay: restored.replay,
             active_revisions: self
                 .history
                 .active_revisions(&self.manifest.tip_revision.0)?
@@ -301,10 +350,62 @@ impl Project {
         let project = Self::load(storage, limits, diagnostics)?;
         project.expect(request.expected_revision)?;
         let restored = project.restore(request.revision, diagnostics)?;
+        project.commit_pipeline(
+            restored,
+            request.pipeline,
+            request.expected_revision,
+            diagnostics,
+        )
+    }
+
+    /// Replace parameters at a logical step and commit a freshly evaluated suffix as one group.
+    pub fn revise(
+        request: ReviseRequest<'_>,
+        limits: &ResourceLimits,
+        diagnostics: &mut Diagnostics,
+    ) -> Result<ProjectChange> {
+        let storage = Storage::open(request.project)?;
+        let _lock = storage.lock()?;
+        let project = Self::load(storage, limits, diagnostics)?;
+        project.expect(request.expected_revision)?;
+        let path = project.history.path(&project.manifest.current_revision.0)?;
+        let index = path
+            .iter()
+            .position(|step| step.revision.0 == request.step_revision)
+            .ok_or_else(|| {
+                PicError::new(
+                    ErrorCode::RevisionNotFound,
+                    "step revision is not on the current history",
+                )
+            })?;
+        let mut operations: Vec<_> = path[index..]
+            .iter()
+            .map(|step| step.operation.clone())
+            .collect();
+        operations[0].params = request.params;
+        let pipeline = Pipeline::new(
+            PipelineSpec {
+                schema_version: PIPELINE_SCHEMA_VERSION,
+                operations,
+            },
+            project.path(),
+            limits,
+        )?;
+        let restored = project.restore(Some(&path[index].base_revision.0), diagnostics)?;
+        project.commit_pipeline(restored, &pipeline, request.expected_revision, diagnostics)
+    }
+
+    fn commit_pipeline(
+        &self,
+        restored: RestoredRevision,
+        pipeline: &Pipeline,
+        expected: &str,
+        diagnostics: &mut Diagnostics,
+    ) -> Result<ProjectChange> {
+        let project = self;
+        let limits = &self.limits;
         let execution = timed(&mut diagnostics.timings.process_ms, || {
-            request
-                .pipeline
-                .execute_with_limits(restored.raster, limits)
+            pipeline.execute_with_limits(restored.raster, limits)
         })?;
         if execution.steps.is_empty() {
             return Err(PicError::new(
@@ -367,11 +468,15 @@ impl Project {
         project.check_metadata_budget(&manifest_bytes, commit_bytes.len() as u64)?;
         timed(&mut diagnostics.timings.write_ms, || {
             project.storage.put_commit(&commit_bytes)?;
-            project.publish(&manifest_bytes, request.expected_revision)
+            project.publish(&manifest_bytes, expected)
         })?;
+        let mut replay = restored.replay;
+        replay
+            .recomputed_revisions
+            .extend(commit.steps.iter().map(|step| step.revision.clone()));
         Ok(ProjectChange {
             project: project.path().to_owned(),
-            previous_revision: Some(project.manifest.current_revision),
+            previous_revision: Some(project.manifest.current_revision.clone()),
             base_revision: Some(base_revision),
             revision: base,
             commit_id: Some(commit.commit_id),
@@ -379,6 +484,7 @@ impl Project {
             published: true,
             width: execution.raster.width(),
             height: execution.raster.height(),
+            replay,
         })
     }
 
@@ -453,6 +559,7 @@ impl Project {
             published: true,
             width: restored.raster.width(),
             height: restored.raster.height(),
+            replay: restored.replay,
         })
     }
 
@@ -493,7 +600,7 @@ impl Project {
         self.storage.publish_manifest(bytes, false)
     }
 
-    /// Export and full-resolution preview are read-only evaluations of the same ops.
+    /// Full-resolution export never reads the preview cache.
     pub fn export(
         &self,
         request: ExportRequest<'_>,
@@ -536,6 +643,7 @@ impl Project {
             width: restored.raster.width(),
             height: restored.raster.height(),
             operations_replayed: restored.operations_replayed,
+            replay: restored.replay,
             format: encoding.format,
             jpeg_quality: encoding.jpeg_quality,
             png_compression: encoding.png_compression,

@@ -1,4 +1,6 @@
 use super::*;
+
+mod replay;
 use crate::operation::{
     Operation, OperationSpec,
     adjustments::{AdjustParams, Channel, CurvesParams},

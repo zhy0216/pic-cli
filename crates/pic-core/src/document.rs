@@ -27,7 +27,7 @@ pub struct RevisionId(pub String);
 
 /// Pixels are linear-light sRGB, straight (unassociated) alpha, in row-major RGBA order.
 /// RGB may be finite HDR/negative values; alpha is finite and in [0, 1].
-/// Clones share immutable samples. A future checkpoint must preserve every f32 bit.
+/// Clones share immutable samples. Checkpoints preserve every f32 bit.
 #[derive(Debug, Clone)]
 pub struct Raster {
     width: u32,

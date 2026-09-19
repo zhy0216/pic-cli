@@ -28,7 +28,7 @@ RGB 可保留有限的负值和大于 1 的值，不在步骤间裁切或量化�
 
 只在最终输出时将 RGB 裁切到 `[0,1]`、转换回非线性 sRGB 并四舍五入为 8-bit；alpha 同样四舍五入。覆盖全部 256 级通道值的 PNG 往返测试要求解码 RGBA 完全相同，含透明像素的隐藏 RGB。
 
-未来检查点必须保留原始 f32 位模式、通道顺序、宽高、色彩语义及 alpha 模式，例如有版本头的 little-endian IEEE-754 样本资产。不能用 RGBA8 PNG、JPEG、缩略图替换工作像素，也不能仅保存扁平预览来恢复未来多图层状态。本任务没有实现检查点序列化、恢复或缓存。
+检查点必须保留原始 f32 位模式、通道顺序、宽高、色彩语义及 alpha 模式。任务 05 已以版本化 little-endian IEEE-754 快照实现单画布检查点；格式、身份、预算和回退见 [重放与预览契约](replay-preview.md)。不能用 RGBA8 PNG、JPEG、缩略图替换工作像素，也不能仅保存扁平预览来恢复未来多图层状态。
 
 ## 操作、顺序与坐标
 
@@ -119,6 +119,6 @@ total 从 main 入口开始，到结果序列化前结束，含 CLI 解析、工
 
 源素材、不可变 ops 及必要结果资产是权威状态。提交记录包含输入/输出 revision、稳定目标、明确参数和资产引用；失败请求、查询与预览不进入编辑序列。检查点和预览属于可丢弃的派生数据，不能成为另一份可独立修改的权威文档。跨进程恢复必须只依赖持久化素材和记录。
 
-一组提交先校验并执行、写资产/不可变记录，最后在跨进程写锁内原子发布 manifest 并比较 expected_revision；并发冲突不得相互覆盖。每个组内逻辑步骤都保留观察边界。从旧步骤继续产生新记录，不改写原记录。预览、导出及重放沿用相同 operation/pipeline 像素语义。任务 04 的全尺寸预览返回 revision、op/目标 ID 与尺寸；检查点、区域/缩放和坐标映射留给任务 05。完整格式、历史与资源预算见 [工程契约](project-history.md)。
+一组提交先校验并执行、写资产/不可变记录，最后在跨进程写锁内原子发布 manifest 并比较 expected_revision；并发冲突不得相互覆盖。每个组内逻辑步骤都保留观察边界。从旧步骤继续产生新记录，不改写原记录。预览、导出及重放沿用相同 operation/pipeline 像素语义。预览返回 revision、op/目标 ID、画布/区域/输出尺寸和双向坐标映射。完整格式、历史与资源预算见 [工程契约](project-history.md)，检查点和模板见 [重放与预览契约](replay-preview.md)。
 
 实现参考：本地 gimpish 的结构/稳定图层 ID、AgentBrush 的统一结果、Compositor 的不可变像素共享。实际后端行为以锁定的 [image ImageDecoder 接口](https://docs.rs/image/0.25.10/image/trait.ImageDecoder.html) 和 [tempfile 发布接口](https://docs.rs/tempfile/3.27.0/tempfile/struct.NamedTempFile.html)及本仓库测试为准，未复制上游指令或采用第二套图像后端。

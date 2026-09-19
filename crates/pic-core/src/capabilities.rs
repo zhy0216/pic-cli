@@ -34,7 +34,7 @@ pub struct OperationCapability {
 
 #[derive(Debug, Serialize)]
 pub struct Capabilities {
-    pub commands: [&'static str; 25],
+    pub commands: [&'static str; 30],
     pub result_schema_version: u32,
     pub pipeline_schema_version: u32,
     pub pixel_semantics: &'static str,
@@ -74,6 +74,11 @@ pub fn capabilities() -> Capabilities {
             "project preview",
             "project undo",
             "project redo",
+            "project checkpoint",
+            "project cache-clear",
+            "project revise",
+            "project template-export",
+            "project template-run",
         ],
         result_schema_version: RESULT_SCHEMA_VERSION,
         pipeline_schema_version: PIPELINE_SCHEMA_VERSION,
@@ -152,7 +157,7 @@ pub fn capabilities() -> Capabilities {
                 id: "project_history_preview",
                 status: Partial,
                 scope: "current",
-                details: "Self-contained .pic assets and immutable normalized ops; SHA-256 integrity/dedup, atomic manifest publication, cross-process writer lock and required expected_revision. Group undo/redo, any committed step inspect/export/full-resolution preview, continuation from old steps with retained read-only history. Full RGBA32F replay via the same pipeline. Checkpoints, scaled/region previews and templates remain planned. Linux validated.",
+                details: "Self-contained .pic assets and immutable ops; atomic manifest, cross-process writer lock and expected_revision. Group undo/redo, any committed revision, old-step parameter revision and prefix reuse reports. Exact RGBA32F checkpoints and separate region/scaled preview caches with disk/memory budgets, integrity fallback, bidirectional canvas coordinates. Templates require explicit new input, canvas target and all step parameters, creating new project-local history; asset/content-dependent operations rejected until rebinding support exists. Single canvas; layers planned. Linux validated.",
             },
             Capability {
                 id: "smart_editing",

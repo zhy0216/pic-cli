@@ -8,8 +8,8 @@ use std::{
 };
 
 use rustix::fs::{
-    AtFlags, CWD, FlockOperation, Mode, OFlags, RenameFlags, flock, mkdirat, openat, renameat,
-    renameat_with, unlinkat,
+    AtFlags, CWD, Dir, FlockOperation, Mode, OFlags, RenameFlags, flock, mkdirat, openat, renameat,
+    renameat_with, statat, unlinkat,
 };
 use sha2::{Digest, Sha256};
 
@@ -90,6 +90,21 @@ pub(super) struct Storage {
     ops: File,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum DerivedKind {
+    Checkpoint,
+    Preview,
+}
+
+impl DerivedKind {
+    fn directory(self) -> &'static str {
+        match self {
+            Self::Checkpoint => "checkpoints",
+            Self::Preview => "cache",
+        }
+    }
+}
+
 impl Storage {
     pub fn initialize(path: &Path) -> Result<Self> {
         let root = directory(&CWD, path)?;
@@ -163,6 +178,172 @@ impl Storage {
     pub fn put_commit(&self, bytes: &[u8]) -> Result<String> {
         put(&self.ops, bytes, true, "ops_write")
     }
+
+    fn derived_directory(&self, kind: DerivedKind, create: bool) -> Result<File> {
+        let name = kind.directory();
+        if create {
+            match mkdirat(&self.root, name, Mode::from_raw_mode(0o700)) {
+                Ok(()) | Err(rustix::io::Errno::EXIST) => (),
+                Err(e) => return Err(io("create cache directory", Path::new(name), e)),
+            }
+        }
+        directory(&self.root, Path::new(name))
+    }
+
+    // Separate from the history lock: a writer may restore while holding `.lock`.
+    fn cache_lock(&self) -> Result<File> {
+        let file = File::from(
+            openat(
+                &self.root,
+                ".cache-lock",
+                OFlags::RDWR
+                    | OFlags::CREATE
+                    | OFlags::NOFOLLOW
+                    | OFlags::NONBLOCK
+                    | OFlags::CLOEXEC,
+                Mode::from_raw_mode(0o600),
+            )
+            .map_err(|e| io("open cache lock", &self.path, e))?,
+        );
+        if !file
+            .metadata()
+            .map_err(|e| PicError::io("inspect cache lock", &self.path, e))?
+            .is_file()
+        {
+            return Err(PicError::new(
+                ErrorCode::UnsafePath,
+                "cache lock must be a regular file",
+            ));
+        }
+        flock(&file, FlockOperation::LockExclusive).map_err(|e| io("lock cache", &self.path, e))?;
+        Ok(file)
+    }
+
+    pub fn derived(&self, kind: DerivedKind, key: &str, limit: u64) -> Result<Vec<u8>> {
+        check_hash(key)?;
+        read(
+            &self.derived_directory(kind, false)?,
+            &format!("{key}.bin"),
+            limit,
+        )
+    }
+
+    pub fn derived_length(&self, kind: DerivedKind, key: &str) -> Result<u64> {
+        check_hash(key)?;
+        let dir = self.derived_directory(kind, false)?;
+        open_file(&dir, &format!("{key}.bin"))?
+            .metadata()
+            .map(|metadata| metadata.len())
+            .map_err(|e| PicError::io("inspect cache size", &self.path, e))
+    }
+
+    /// Eviction only visits digest-named files in the two derived directories.
+    /// All cache publishers/clearers serialize here; readers tolerate eviction races.
+    pub fn put_derived(
+        &self,
+        kind: DerivedKind,
+        key: &str,
+        bytes: &[u8],
+        budget: u64,
+    ) -> Result<bool> {
+        check_hash(key)?;
+        let _lock = self.cache_lock()?;
+        let directories = [
+            self.derived_directory(DerivedKind::Checkpoint, true)?,
+            self.derived_directory(DerivedKind::Preview, true)?,
+        ];
+        let destination = usize::from(kind == DerivedKind::Preview);
+        let name = format!("{key}.bin");
+        let fits = bytes.len() as u64 <= budget;
+        trim_derived(
+            &directories,
+            budget.saturating_sub(if fits { bytes.len() as u64 } else { 0 }),
+            Some((destination, &name)),
+        )?;
+        if !fits {
+            return Ok(false);
+        }
+        write_atomic(&directories[destination], &name, bytes, true, "cache_write")?;
+        Ok(true)
+    }
+
+    pub fn clear_derived(&self) -> Result<u64> {
+        self.trim_cache(0)
+    }
+
+    pub fn trim_cache(&self, budget: u64) -> Result<u64> {
+        let _lock = self.cache_lock()?;
+        let mut directories = Vec::new();
+        for kind in [DerivedKind::Checkpoint, DerivedKind::Preview] {
+            match self.derived_directory(kind, false) {
+                Ok(dir) => directories.push(dir),
+                Err(e) if e.code == ErrorCode::FileNotFound => (),
+                Err(e) => return Err(e),
+            }
+        }
+        trim_derived(&directories, budget, None)
+    }
+}
+
+fn trim_derived(
+    directories: &[File],
+    budget: u64,
+    replacing: Option<(usize, &str)>,
+) -> Result<u64> {
+    let mut entries = Vec::new();
+    let mut total = 0u64;
+    for (index, dir) in directories.iter().enumerate() {
+        let iter = Dir::read_from(dir).map_err(|e| io("list cache", Path::new("cache"), e))?;
+        for entry in iter {
+            let entry = entry.map_err(|e| io("list cache entry", Path::new("cache"), e))?;
+            let Some(name) = entry.file_name().to_str().ok() else {
+                continue;
+            };
+            if !name
+                .strip_suffix(".bin")
+                .is_some_and(|key| check_hash(key).is_ok())
+            {
+                continue;
+            }
+            let metadata = statat(dir, name, AtFlags::SYMLINK_NOFOLLOW)
+                .map_err(|e| io("inspect cache entry", Path::new(name), e))?;
+            let bytes = u64::try_from(metadata.st_size).unwrap_or(0);
+            total = total.saturating_add(bytes);
+            entries.push((
+                metadata.st_mtime,
+                metadata.st_mtime_nsec,
+                index,
+                name.to_owned(),
+                bytes,
+            ));
+        }
+    }
+    // Oldest publication first, with stable tie-breaking. Not an access-time LRU.
+    entries.sort();
+    let mut removed = 0;
+    if let Some((index, name)) = replacing
+        && let Some(entry) = entries.iter_mut().find(|e| e.2 == index && e.3 == name)
+    {
+        unlinkat(&directories[index], name, AtFlags::empty())
+            .map_err(|e| io("replace cache entry", Path::new(name), e))?;
+        total = total.saturating_sub(entry.4);
+        removed += entry.4;
+        entry.3.clear();
+    }
+    for (_, _, index, name, bytes) in entries {
+        // Zero also means explicit clear: remove truncated/zero-byte entries too.
+        if budget != 0 && total <= budget {
+            break;
+        }
+        if name.is_empty() {
+            continue;
+        }
+        unlinkat(&directories[index], name.as_str(), AtFlags::empty())
+            .map_err(|e| io("evict cache entry", Path::new(&name), e))?;
+        total = total.saturating_sub(bytes);
+        removed += bytes;
+    }
+    Ok(removed)
 }
 
 pub(super) fn publish_directory(staged: &Path, destination: &Path) -> Result<()> {

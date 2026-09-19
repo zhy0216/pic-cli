@@ -7,6 +7,9 @@ use std::{
 use image::{Rgba, RgbaImage};
 use serde_json::{Value, json};
 
+#[path = "project/replay.rs"]
+mod replay;
+
 fn binary() -> PathBuf {
     std::env::var_os("PIC_CLI_BIN")
         .map(PathBuf::from)
