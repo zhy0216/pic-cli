@@ -258,23 +258,28 @@ fn decode(
             "mask must contain grayscale coverage (R=G=B), optionally multiplied by alpha",
         ));
     }
-    pixels.extend(decoded.pixels().map(|p| {
-        if coverage {
+    if coverage {
+        pixels.extend(decoded.pixels().map(|p| {
             [
                 0.0,
                 0.0,
                 0.0,
                 (f64::from(p[0]) * f64::from(p[3]) / (255.0 * 255.0)) as f32,
             ]
-        } else {
+        }));
+    } else {
+        // Inputs are admitted as 8-bit only. Evaluate the existing transfer function once
+        // for every possible byte, without approximating or quantizing working floats.
+        let transfer: [f32; 256] = std::array::from_fn(|sample| srgb_to_linear(sample as u8));
+        pixels.extend(decoded.pixels().map(|p| {
             [
-                srgb_to_linear(p[0]),
-                srgb_to_linear(p[1]),
-                srgb_to_linear(p[2]),
+                transfer[usize::from(p[0])],
+                transfer[usize::from(p[1])],
+                transfer[usize::from(p[2])],
                 f32::from(p[3]) / 255.0,
             ]
-        }
-    }));
+        }));
+    }
     let raster = Raster::from_linear_rgba(width, height, pixels, limits)?;
     let info = ImageInfo {
         path,
@@ -480,6 +485,50 @@ mod tests {
     thread_local! {
         pub(super) static DECODE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
         pub(super) static ENCODE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    }
+
+    #[test]
+    fn byte_transfer_lookup_matches_scalar_float_bits_and_keeps_coverage_separate() {
+        let limits = ResourceLimits::default();
+        let image = image::RgbaImage::from_fn(256, 2, |x, y| {
+            image::Rgba([
+                x as u8,
+                (255 - x) as u8,
+                (x * 73) as u8,
+                if y == 0 { 0 } else { (255 - x) as u8 },
+            ])
+        });
+        let mut bytes = Vec::new();
+        image::codecs::png::PngEncoder::new(&mut bytes)
+            .write_image(image.as_raw(), 256, 2, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        let loaded = decode(&bytes, "colors.png".into(), &limits, false).unwrap();
+        // Do not let constant folding turn the reference itself into a compile-time table.
+        let scalar = std::hint::black_box(srgb_to_linear as fn(u8) -> f32);
+        for (encoded, pixel) in image.pixels().zip(loaded.raster.pixels()) {
+            let expected = [
+                scalar(encoded[0]),
+                scalar(encoded[1]),
+                scalar(encoded[2]),
+                f32::from(encoded[3]) / 255.0,
+            ];
+            assert_eq!(expected.map(f32::to_bits), pixel.map(f32::to_bits));
+        }
+        let mask = image::RgbaImage::from_fn(256, 1, |x, _| {
+            image::Rgba([x as u8, x as u8, x as u8, (255 - x) as u8])
+        });
+        bytes.clear();
+        image::codecs::png::PngEncoder::new(&mut bytes)
+            .write_image(mask.as_raw(), 256, 1, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        let loaded = decode(&bytes, "mask.png".into(), &limits, true).unwrap();
+        for (encoded, pixel) in mask.pixels().zip(loaded.raster.pixels()) {
+            let coverage = (f64::from(encoded[0]) * f64::from(encoded[3]) / 65025.0) as f32;
+            assert_eq!(
+                [0.0, 0.0, 0.0, coverage].map(f32::to_bits),
+                pixel.map(f32::to_bits)
+            );
+        }
     }
 
     #[test]

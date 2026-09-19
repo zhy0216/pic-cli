@@ -289,18 +289,17 @@ impl Project {
                         steps[index - 1].revision.clone()
                     },
                 });
-                cached = Some(
-                    value
-                        .document
-                        .unwrap_or_else(|| Document::from_raster(value.raster)),
-                );
+                let document = value
+                    .document
+                    .unwrap_or_else(|| Document::from_raster(value.raster.clone()));
+                cached = Some((document, value.raster));
                 break;
             }
         }
         let input = match cached {
-            Some(document) => document,
-            None => Document::from_raster(
-                codec::load_bytes(
+            Some(state) => state,
+            None => {
+                let raster = codec::load_bytes(
                     &bytes,
                     self.path()
                         .join("assets")
@@ -308,11 +307,13 @@ impl Project {
                     &self.limits,
                     diagnostics,
                 )?
-                .raster,
-            ),
+                .raster;
+                (Document::from_raster(raster.clone()), raster)
+            }
         };
-        let document = timed(&mut diagnostics.timings.process_ms, || {
-            let mut document = input;
+        let (document, raster) = timed(&mut diagnostics.timings.process_ms, || {
+            let (mut document, mut raster) = input;
+            document.validate(&self.limits)?;
             for chunk in steps[replay.reused_steps..].chunks(self.limits.max_operations.max(1)) {
                 let pipeline = Pipeline::new(
                     PipelineSpec {
@@ -322,22 +323,24 @@ impl Project {
                     self.path(),
                     &self.limits,
                 )?;
-                document = pipeline
-                    .execute_document(
-                        document,
-                        &self.limits,
-                        &mut |source, mask| self.load_operand(source, mask, &self.limits),
-                        &mut |source| self.load_font(source, &self.limits),
-                    )?
-                    .document;
+                // A checkpoint already contains its canvas. When replaying a suffix, release
+                // the previous canvas before evaluating the next chunk to bound overlap.
+                drop(raster);
+                let execution = pipeline.execute_document(
+                    document,
+                    &self.limits,
+                    &mut |source, mask| self.load_operand(source, mask, &self.limits),
+                    &mut |source| self.load_font(source, &self.limits),
+                )?;
+                document = execution.document;
+                raster = execution.raster;
                 replay
                     .recomputed_revisions
                     .extend(chunk.iter().map(|step| step.revision.clone()));
             }
-            Ok(document)
-        })?;
-        let raster = timed(&mut diagnostics.timings.process_ms, || {
-            document.render(&TargetId::canvas(), &self.limits)
+            // Keep the exact canvas produced by the last chunk (or validated checkpoint).
+            // Rendering it again would repeat full layer sampling and composition.
+            Ok((document, raster))
         })?;
         Ok(RestoredRevision {
             document,

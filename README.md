@@ -6,7 +6,7 @@
 
 ## 构建与使用
 
-首轮验证平台为本机 Linux x86_64；其他平台尚未验证。依赖锁定在 `Cargo.lock`，`image` 仅开启 PNG/JPEG codec。编译器与基线环境见 [基准记录](docs/baseline.md)。
+首轮验证平台为本机 Linux x86_64；其他平台尚未验证。依赖锁定在 `Cargo.lock`，`image` 仅开启 PNG/JPEG codec。小图启动记录见 [早期基线](docs/baseline.md)；1080p/4K 编辑、工程重放/检查点和历史修改的 30 轮 release 数据、预算与复跑方法见 [端到端性能报告](docs/performance.md)。
 
 ```sh
 cargo build --release
@@ -127,4 +127,4 @@ PIC_CLI_BIN="$PWD/target/release/pic-cli" cargo test -p pic-cli --test project
 cargo run --release -p pic-cli --example foundation_baseline -- "$PWD/target/release/pic-cli"
 ```
 
-测试与基线在临时目录自生成素材、管线及输出，不把样例或测量产物写入仓库。验收范围、测试对应关系见 [基础验收记录](docs/foundation-validation.md)。
+测试与早期小图基线在临时目录自生成素材、管线及输出。端到端性能脚本将大图素材、工程和二进制保留在忽略的 `target/performance/`，逐次机器可读数据与分析登记在 `docs/performance/`；性能回归默认报告差异，不设置共享 CI 的硬耗时门槛。验收范围、测试对应关系见 [基础验收记录](docs/foundation-validation.md)。

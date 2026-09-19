@@ -1,0 +1,5023 @@
+{
+  "schema_version": 1,
+  "label": "before",
+  "sample_count": 30,
+  "started_utc": "2026-09-19T12:46:13Z",
+  "binary": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/binaries/before",
+  "binary_sha256": "9a99a79b734fd37bfe51330837df72510ef1ace59cc3e2a727283f1d19aa779a",
+  "fixture_tool_sha256": "afab7205c554e5d5984a5a612a48f035a17099068edaeeb748082d631cd68901",
+  "work_dir": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline",
+  "runner_sha256": "945b711a321e7e19ba4de67e4dc19feae9ab529f4b7d15571c609eca36b8ff33",
+  "machine": {
+    "platform": "Linux-6.8.0-31-generic-x86_64-with-glibc2.39",
+    "python": "3.14.7",
+    "cpu": {
+      "status": 0,
+      "stdout": "Architecture:                         x86_64\nCPU op-mode(s):                       32-bit, 64-bit\nAddress sizes:                        48 bits physical, 48 bits virtual\nByte Order:                           Little Endian\nCPU(s):                               8\nOn-line CPU(s) list:                  0-7\nVendor ID:                            AuthenticAMD\nModel name:                           AMD EPYC Processor\nCPU family:                           23\nModel:                                1\nThread(s) per core:                   2\nCore(s) per socket:                   4\nSocket(s):                            1\nStepping:                             2\nBogoMIPS:                             5789.12\nFlags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm rep_good nopl cpuid extd_apicid amd_dcm tsc_known_freq pni pclmulqdq ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext intel_ppin vmmcall fsgsbase bmi1 avx2 smep bmi2 rdseed adx smap clflushopt sha_ni xsaveopt xsavec xgetbv1 arat\nHypervisor vendor:                    KVM\nVirtualization type:                  full\nL1d cache:                            128 KiB (4 instances)\nL1i cache:                            256 KiB (4 instances)\nL2 cache:                             2 MiB (4 instances)\nL3 cache:                             8 MiB (1 instance)\nNUMA node(s):                         1\nNUMA node0 CPU(s):                    0-7\nVulnerability Gather data sampling:   Not affected\nVulnerability Itlb multihit:          Not affected\nVulnerability L1tf:                   Not affected\nVulnerability Mds:                    Not affected\nVulnerability Meltdown:               Not affected\nVulnerability Mmio stale data:        Not affected\nVulnerability Reg file data sampling: Not affected\nVulnerability Retbleed:               Mitigation; untrained return thunk; SMT vulnerable\nVulnerability Spec rstack overflow:   Vulnerable: Safe RET, no microcode\nVulnerability Spec store bypass:      Vulnerable\nVulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:             Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                  Not affected\nVulnerability Tsx async abort:        Not affected\n",
+      "stderr": ""
+    },
+    "memory": "MemTotal:       16367340 kB\nMemFree:         1178616 kB\nMemAvailable:   12038164 kB\nBuffers:          270752 kB\nCached:         10168788 kB\nSwapCached:            0 kB\nActive:          8205188 kB\nInactive:        5427624 kB\nActive(anon):    2613444 kB\nInactive(anon):   778520 kB\nActive(file):    5591744 kB\nInactive(file):  4649104 kB\nUnevictable:       27284 kB\nMlocked:           27284 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:            518328 kB\nWriteback:             0 kB\nAnonPages:       3220668 kB\nMapped:           659704 kB\nShmem:            189940 kB\nKReclaimable:     956388 kB\nSlab:            1137284 kB\nSReclaimable:     956388 kB\nSUnreclaim:       180896 kB\nKernelStack:       11248 kB\nPageTables:        30896 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     8183668 kB\nCommitted_AS:    3086288 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:       28832 kB\nVmallocChunk:          0 kB\nPercpu:            24192 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:     16384 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      147304 kB\nDirectMap2M:     7192576 kB\nDirectMap1G:    11534336 kB\n",
+    "affinity": [
+      0
+    ],
+    "load": [
+      3.2158203125,
+      3.3125,
+      3.033203125
+    ],
+    "disk": {
+      "status": 0,
+      "stdout": "Filesystem     Type 1K-blocks      Used Available Use% Mounted on\n/dev/vdb       ext4 112947452 110165052   2766016  98% /home/ubuntu\n",
+      "stderr": ""
+    },
+    "mount": {
+      "status": 0,
+      "stdout": "TARGET       SOURCE   FSTYPE OPTIONS\n/home/ubuntu /dev/vdb ext4   rw,relatime,discard\n",
+      "stderr": ""
+    },
+    "block_devices": {
+      "status": 0,
+      "stdout": "NAME    TYPE  SIZE ROTA MODEL\nvda     disk   40G    1 \n\u251c\u2500vda1  part   39G    1 \n\u251c\u2500vda14 part    4M    1 \n\u251c\u2500vda15 part  106M    1 \n\u2514\u2500vda16 part  913M    1 \nvdb     disk  110G    1 \n",
+      "stderr": ""
+    },
+    "cgroup": "0::/user.slice/user-1000.slice/session-2.scope\n",
+    "cpu_max": null,
+    "memory_max": null,
+    "rustc": {
+      "status": 0,
+      "stdout": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+      "stderr": ""
+    },
+    "cargo": {
+      "status": 0,
+      "stdout": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n",
+      "stderr": ""
+    },
+    "vips": {
+      "unavailable": "[Errno 2] No such file or directory: 'vips'"
+    },
+    "rss_sampler": {
+      "status": 0,
+      "stdout": "time (GNU Time) UNKNOWN\nCopyright (C) 2018 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by David Keppel, David MacKenzie, and Assaf Gordon.\n",
+      "stderr": ""
+    },
+    "build_env": {
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null,
+      "CARGO_BUILD_TARGET": null,
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": null,
+      "CARGO_PROFILE_RELEASE_LTO": null,
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": null,
+      "RAYON_NUM_THREADS": null
+    },
+    "build": "cargo build --locked --release; default release profile; no added features",
+    "cargo_toml_sha256": "e3413ab8315c95f9b2ca0f6b45391a00312fa244564956286235ac48a4cb5f7b",
+    "cargo_lock_sha256": "fce82a52e52097b3593311db34221c4a4823eea9b51cc4ab2a6d9e34a1695677",
+    "git_head": {
+      "status": 0,
+      "stdout": "bbd387f08fe4ed2104b91aca61abf36947f4a5ef\n",
+      "stderr": ""
+    },
+    "git_diff": {
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "fixtures": {
+    "1080.jpg": {
+      "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+      "bytes": 701123
+    },
+    "1080.png": {
+      "sha256": "1b7ed2ece2a00c99c28433ef7f698f05c7a3177e708396a11b438527871c3779",
+      "bytes": 1044916
+    },
+    "4k.jpg": {
+      "sha256": "c789df1d505149d86a41e8f05bbf01cf8cc7d7ef791ac450841d3da7cfa663f7",
+      "bytes": 3113576
+    },
+    "4k.png": {
+      "sha256": "c2f22fbe37f9f991d12b9bc7015db0dc97997c16e9e09edd2939d74acc032f29",
+      "bytes": 4180426
+    },
+    "adjust.json": {
+      "sha256": "74eeca050fb9baa7570d5a406b8538ca867baba81a6c93dabcc24d5e57c8f300",
+      "bytes": 257
+    },
+    "blur.json": {
+      "sha256": "7c63a678e8bf9adb90d0f80bd5c3bf3050deccd2411977bd64e641987930b230",
+      "bytes": 178
+    },
+    "history.json": {
+      "sha256": "c314a63ce02dbcb441b20bd6b6b9fa2d16dcedff6432f3da838a5efdf3cd6bc9",
+      "bytes": 4278
+    },
+    "layers.json": {
+      "sha256": "657c69d41e7c6d5ececb04cd83dbf3f9f716559a34f08a549503e697a383e1f0",
+      "bytes": 404
+    },
+    "photo.json": {
+      "sha256": "0ee0b1d30eaa08ef5f4a2c4fa12c0910c86f0684840ca3334dc82cf9d4babb1c",
+      "bytes": 443
+    }
+  },
+  "cache_policy": "one untimed warmup per scenario; OS pages uncontrolled/warm-biased, never dropped; cache-clear removes only project-derived files; fresh CLI for every measurement",
+  "timing_policy": "perf_counter_ns around GNU time wrapper + CLI spawn/exit; excludes setup, JSON parsing, tree accounting and output validation; no fsync guarantee",
+  "rss_policy": "GNU time wait4(CLI pid).ru_maxrss KiB; excludes Python/wrapper RSS; not RUSAGE_CHILDREN",
+  "order": "seed 11 shuffle of all selected scenarios in each round; one CLI at a time",
+  "budgets": {
+    "buffer_bytes": 1073741824,
+    "default_cache_memory_bytes": 268435456,
+    "cache_disk_bytes": 536870912,
+    "layer_checkpoint_cache_memory_bytes": 1073741824
+  },
+  "default_layer_checkpoint": {
+    "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+    "revision": "r2",
+    "key": "0d595df548da9e11dc35ad1c29f1223bb40853fd1335bee34fd4af47c4f49301",
+    "canvas": {
+      "width": 3840,
+      "height": 2160
+    },
+    "disk_stored": false,
+    "memory_stored": false,
+    "replay": {
+      "cache_hit": null,
+      "reused_steps": 0,
+      "recomputed_revisions": [
+        "r1",
+        "r2"
+      ]
+    }
+  },
+  "setup": [
+    {
+      "argv": [
+        "project",
+        "create",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/1080.jpg",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/initial.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 140.154969,
+        "peak_rss_kib": 46700,
+        "user_ms": 100.0,
+        "system_ms": 30.0,
+        "minor_faults": 12297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 1392,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.673129,
+          "decode_ms": 128.870825,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 1.612997,
+          "total_ms": 136.537139
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/initial.pic",
+        "previous_revision": null,
+        "base_revision": null,
+        "revision": "r0",
+        "commit_id": null,
+        "steps": [],
+        "published": true,
+        "width": 1920,
+        "height": 1080,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": []
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "apply",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/history.json",
+        "--expect-revision",
+        "r0",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 782.610024,
+        "peak_rss_kib": 103228,
+        "user_ms": 660.0,
+        "system_ms": 110.0,
+        "minor_faults": 44675,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 48,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.269214,
+          "read_ms": 0.998458,
+          "decode_ms": 127.438576,
+          "process_ms": 637.82894,
+          "encode_ms": 0.0,
+          "write_ms": 0.462515,
+          "total_ms": 779.141495
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "previous_revision": "r0",
+        "base_revision": "r0",
+        "revision": "r20",
+        "commit_id": "c1",
+        "steps": [
+          {
+            "op_id": "op1",
+            "base_revision": "r0",
+            "revision": "r1",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op2",
+            "base_revision": "r1",
+            "revision": "r2",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op3",
+            "base_revision": "r2",
+            "revision": "r3",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op4",
+            "base_revision": "r3",
+            "revision": "r4",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op5",
+            "base_revision": "r4",
+            "revision": "r5",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op6",
+            "base_revision": "r5",
+            "revision": "r6",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op7",
+            "base_revision": "r6",
+            "revision": "r7",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op8",
+            "base_revision": "r7",
+            "revision": "r8",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op9",
+            "base_revision": "r8",
+            "revision": "r9",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op10",
+            "base_revision": "r9",
+            "revision": "r10",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op11",
+            "base_revision": "r10",
+            "revision": "r11",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op12",
+            "base_revision": "r11",
+            "revision": "r12",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op13",
+            "base_revision": "r12",
+            "revision": "r13",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op14",
+            "base_revision": "r13",
+            "revision": "r14",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op15",
+            "base_revision": "r14",
+            "revision": "r15",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op16",
+            "base_revision": "r15",
+            "revision": "r16",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op17",
+            "base_revision": "r16",
+            "revision": "r17",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op18",
+            "base_revision": "r17",
+            "revision": "r18",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op19",
+            "base_revision": "r18",
+            "revision": "r19",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": 0.15,
+                "saturation": 1.01
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op20",
+            "base_revision": "r19",
+            "revision": "r20",
+            "operation": {
+              "op": "adjust",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "exposure": -0.12,
+                "saturation": 0.99
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "5e2449c460e5862bf6235d157651946b24e2e903295aa3c80b2573175b4b091b",
+                "bytes": 701123
+              }
+            ],
+            "result_assets": []
+          }
+        ],
+        "published": true,
+        "width": 1920,
+        "height": 1080,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": [
+            "r1",
+            "r2",
+            "r3",
+            "r4",
+            "r5",
+            "r6",
+            "r7",
+            "r8",
+            "r9",
+            "r10",
+            "r11",
+            "r12",
+            "r13",
+            "r14",
+            "r15",
+            "r16",
+            "r17",
+            "r18",
+            "r19",
+            "r20"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--revision",
+        "r2",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 326.242517,
+        "peak_rss_kib": 71512,
+        "user_ms": 200.0,
+        "system_ms": 120.0,
+        "minor_faults": 36571,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 64816,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 1.364552,
+          "decode_ms": 129.31137,
+          "process_ms": 101.193211,
+          "encode_ms": 0.0,
+          "write_ms": 82.700942,
+          "total_ms": 322.794134
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "revision": "r2",
+        "key": "4fe88bdddd3bca312f3868c3629c4d2db744558406d552a99678b6cc9cc35187",
+        "canvas": {
+          "width": 1920,
+          "height": 1080
+        },
+        "disk_stored": true,
+        "memory_stored": true,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": [
+            "r1",
+            "r2"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--revision",
+        "r17",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 653.170424,
+        "peak_rss_kib": 103380,
+        "user_ms": 470.0,
+        "system_ms": 170.0,
+        "minor_faults": 49048,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 64816,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 80.603971,
+          "decode_ms": 0.0,
+          "process_ms": 492.84717100000006,
+          "encode_ms": 0.0,
+          "write_ms": 64.273576,
+          "total_ms": 649.474749
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "revision": "r17",
+        "key": "7f87a8e1aa5756137b124607c8a98def5c2bccfd344f312cc3cbe3d4399a11ed",
+        "canvas": {
+          "width": 1920,
+          "height": 1080
+        },
+        "disk_stored": true,
+        "memory_stored": true,
+        "replay": {
+          "cache_hit": {
+            "kind": "checkpoint",
+            "tier": "disk",
+            "key": "4fe88bdddd3bca312f3868c3629c4d2db744558406d552a99678b6cc9cc35187",
+            "revision": "r2"
+          },
+          "reused_steps": 2,
+          "recomputed_revisions": [
+            "r3",
+            "r4",
+            "r5",
+            "r6",
+            "r7",
+            "r8",
+            "r9",
+            "r10",
+            "r11",
+            "r12",
+            "r13",
+            "r14",
+            "r15",
+            "r16",
+            "r17"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--revision",
+        "r20",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 324.894484,
+        "peak_rss_kib": 103380,
+        "user_ms": 150.0,
+        "system_ms": 160.0,
+        "minor_faults": 49046,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 64816,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 79.082072,
+          "decode_ms": 0.0,
+          "process_ms": 147.04568899999998,
+          "encode_ms": 0.0,
+          "write_ms": 83.444513,
+          "total_ms": 321.44466900000003
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "revision": "r20",
+        "key": "0f825c84b9746e0bf9715d687ed5061d3cc5c0f8e5decda4bf7ee1c8bd544c5e",
+        "canvas": {
+          "width": 1920,
+          "height": 1080
+        },
+        "disk_stored": true,
+        "memory_stored": true,
+        "replay": {
+          "cache_hit": {
+            "kind": "checkpoint",
+            "tier": "disk",
+            "key": "7f87a8e1aa5756137b124607c8a98def5c2bccfd344f312cc3cbe3d4399a11ed",
+            "revision": "r17"
+          },
+          "reused_steps": 17,
+          "recomputed_revisions": [
+            "r18",
+            "r19",
+            "r20"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "preview",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--width",
+        "640",
+        "--filter",
+        "bilinear",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_preview.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 240.243373,
+        "peak_rss_kib": 84516,
+        "user_ms": 140.0,
+        "system_ms": 90.0,
+        "minor_faults": 29657,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 7608,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.032681,
+          "read_ms": 81.32486499999999,
+          "decode_ms": 0.0,
+          "process_ms": 43.214855,
+          "encode_ms": 97.380759,
+          "write_ms": 9.277178000000001,
+          "total_ms": 236.62398100000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "revision": "r20",
+        "target": "canvas",
+        "op_id": "op20",
+        "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_preview.png",
+        "width": 640,
+        "height": 360,
+        "operations_replayed": 0,
+        "replay": {
+          "cache_hit": {
+            "kind": "checkpoint",
+            "tier": "disk",
+            "key": "0f825c84b9746e0bf9715d687ed5061d3cc5c0f8e5decda4bf7ee1c8bd544c5e",
+            "revision": "r20"
+          },
+          "reused_steps": 20,
+          "recomputed_revisions": []
+        },
+        "format": "png",
+        "jpeg_quality": null,
+        "png_compression": 6,
+        "jpeg_background": null,
+        "canvas": {
+          "width": 1920,
+          "height": 1080
+        },
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "preview_size": {
+          "width": 640,
+          "height": 360
+        },
+        "filter": "bilinear",
+        "coordinates": {
+          "convention": "pixel_edges; centers=(index+0.5); x_right_y_down",
+          "preview_to_canvas": {
+            "scale": [
+              3.0,
+              3.0
+            ],
+            "offset": [
+              0.0,
+              0.0
+            ]
+          },
+          "canvas_to_preview": {
+            "scale": [
+              0.3333333333333333,
+              0.3333333333333333
+            ],
+            "offset": [
+              -0.0,
+              -0.0
+            ]
+          },
+          "layer_to_canvas": null,
+          "canvas_to_layer": null,
+          "preview_to_layer": null,
+          "layer_to_preview": null
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "create",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/4k.jpg",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 543.81933,
+        "peak_rss_kib": 170248,
+        "user_ms": 410.0,
+        "system_ms": 130.0,
+        "minor_faults": 48417,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 6104,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 2.556543,
+          "decode_ms": 516.274444,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 5.318049,
+          "total_ms": 540.4280150000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "previous_revision": null,
+        "base_revision": null,
+        "revision": "r0",
+        "commit_id": null,
+        "steps": [],
+        "published": true,
+        "width": 3840,
+        "height": 2160,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": []
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "apply",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/layers.json",
+        "--expect-revision",
+        "r0",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 2150.994975,
+        "peak_rss_kib": 690856,
+        "user_ms": 1480.0,
+        "system_ms": 650.0,
+        "minor_faults": 252000,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8192,
+        "voluntary_switches": 1,
+        "involuntary_switches": 13,
+        "timings": {
+          "validation_ms": 0.19307100000000002,
+          "read_ms": 7.614496000000001,
+          "decode_ms": 509.544501,
+          "process_ms": 1573.6124189999998,
+          "encode_ms": 0.0,
+          "write_ms": 6.775906999999999,
+          "total_ms": 2143.324695
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "previous_revision": "r0",
+        "base_revision": "r0",
+        "revision": "r2",
+        "commit_id": "c1",
+        "steps": [
+          {
+            "op_id": "op1",
+            "base_revision": "r0",
+            "revision": "r1",
+            "operation": {
+              "op": "layer_add",
+              "op_version": 1,
+              "target": "canvas",
+              "params": {
+                "id": "overlay",
+                "name": "Overlay",
+                "source": "asset:c2f22fbe37f9f991d12b9bc7015db0dc97997c16e9e09edd2939d74acc032f29"
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "c789df1d505149d86a41e8f05bbf01cf8cc7d7ef791ac450841d3da7cfa663f7",
+                "bytes": 3113576
+              },
+              {
+                "sha256": "c2f22fbe37f9f991d12b9bc7015db0dc97997c16e9e09edd2939d74acc032f29",
+                "bytes": 4180426
+              }
+            ],
+            "result_assets": []
+          },
+          {
+            "op_id": "op2",
+            "base_revision": "r1",
+            "revision": "r2",
+            "operation": {
+              "op": "layer_set",
+              "op_version": 1,
+              "target": "overlay",
+              "params": {
+                "blend": "screen",
+                "name": null,
+                "opacity": 0.7,
+                "visible": null
+              }
+            },
+            "input_assets": [
+              {
+                "sha256": "c789df1d505149d86a41e8f05bbf01cf8cc7d7ef791ac450841d3da7cfa663f7",
+                "bytes": 3113576
+              }
+            ],
+            "result_assets": []
+          }
+        ],
+        "published": true,
+        "width": 3840,
+        "height": 2160,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": [
+            "r1",
+            "r2"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 3290.62532,
+        "peak_rss_kib": 693644,
+        "user_ms": 2200.0,
+        "system_ms": 1080.0,
+        "minor_faults": 414250,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 14,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 10.661198,
+          "decode_ms": 509.890508,
+          "process_ms": 2715.4996069999997,
+          "encode_ms": 0.0,
+          "write_ms": 0.158908,
+          "total_ms": 3282.381305
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "revision": "r2",
+        "key": "0d595df548da9e11dc35ad1c29f1223bb40853fd1335bee34fd4af47c4f49301",
+        "canvas": {
+          "width": 3840,
+          "height": 2160
+        },
+        "disk_stored": false,
+        "memory_stored": false,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": [
+            "r1",
+            "r2"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--revision",
+        "r2",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 4459.04419,
+        "peak_rss_kib": 820260,
+        "user_ms": 2630.0,
+        "system_ms": 1810.0,
+        "minor_faults": 511452,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 777616,
+        "voluntary_switches": 1,
+        "involuntary_switches": 21,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 10.643163000000003,
+          "decode_ms": 514.662097,
+          "process_ms": 2725.0633310000003,
+          "encode_ms": 0.0,
+          "write_ms": 1151.980462,
+          "total_ms": 4450.919497
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "revision": "r2",
+        "key": "0d595df548da9e11dc35ad1c29f1223bb40853fd1335bee34fd4af47c4f49301",
+        "canvas": {
+          "width": 3840,
+          "height": 2160
+        },
+        "disk_stored": true,
+        "memory_stored": true,
+        "replay": {
+          "cache_hit": null,
+          "reused_steps": 0,
+          "recomputed_revisions": [
+            "r1",
+            "r2"
+          ]
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "preview",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--width",
+        "960",
+        "--filter",
+        "bilinear",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers_preview.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 2652.390692,
+        "peak_rss_kib": 790036,
+        "user_ms": 1510.0,
+        "system_ms": 1130.0,
+        "minor_faults": 404782,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 17160,
+        "voluntary_switches": 1,
+        "involuntary_switches": 12,
+        "timings": {
+          "validation_ms": 0.038600999999999996,
+          "read_ms": 969.279703,
+          "decode_ms": 0.0,
+          "process_ms": 1381.8597729999997,
+          "encode_ms": 220.882789,
+          "write_ms": 22.190960000000004,
+          "total_ms": 2647.687903
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "revision": "r2",
+        "target": "canvas",
+        "op_id": "op2",
+        "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers_preview.png",
+        "width": 960,
+        "height": 540,
+        "operations_replayed": 0,
+        "replay": {
+          "cache_hit": {
+            "kind": "checkpoint",
+            "tier": "disk",
+            "key": "0d595df548da9e11dc35ad1c29f1223bb40853fd1335bee34fd4af47c4f49301",
+            "revision": "r2"
+          },
+          "reused_steps": 2,
+          "recomputed_revisions": []
+        },
+        "format": "png",
+        "jpeg_quality": null,
+        "png_compression": 6,
+        "jpeg_background": null,
+        "canvas": {
+          "width": 3840,
+          "height": 2160
+        },
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 3840,
+          "height": 2160
+        },
+        "preview_size": {
+          "width": 960,
+          "height": 540
+        },
+        "filter": "bilinear",
+        "coordinates": {
+          "convention": "pixel_edges; centers=(index+0.5); x_right_y_down",
+          "preview_to_canvas": {
+            "scale": [
+              4.0,
+              4.0
+            ],
+            "offset": [
+              0.0,
+              0.0
+            ]
+          },
+          "canvas_to_preview": {
+            "scale": [
+              0.25,
+              0.25
+            ],
+            "offset": [
+              -0.0,
+              -0.0
+            ]
+          },
+          "layer_to_canvas": null,
+          "canvas_to_layer": null,
+          "preview_to_layer": null,
+          "layer_to_preview": null
+        }
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 145.298532,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.230812,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 140.638975,
+          "total_ms": 141.704848
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 137.4729,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.214502,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 132.98944100000003,
+          "total_ms": 133.995163
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 43.03613,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.39002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 37.644233,
+          "total_ms": 38.892958
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 143.651842,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.229279,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 138.876777,
+          "total_ms": 139.946288
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.440016,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.29776800000000003,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 30.594673,
+          "total_ms": 31.592218
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.351388,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.172373,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 128.679969,
+          "total_ms": 129.55434499999998
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 129.259843,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.165469,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 125.631336,
+          "total_ms": 126.50935799999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 37.185253,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.32895599999999997,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 32.999852000000004,
+          "total_ms": 34.075716
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 139.725084,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.174215,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 135.993203,
+          "total_ms": 136.87317800000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 135.6607,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.18999500000000002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 131.747899,
+          "total_ms": 132.661117
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.534966,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.31729399999999996,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.738172000000002,
+          "total_ms": 32.757499
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 131.551942,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 7,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.17277399999999998,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.83053,
+          "total_ms": 128.72222
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.007478,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.307385,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.238939000000002,
+          "total_ms": 32.243218
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.914242,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.199534,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 129.095987,
+          "total_ms": 129.977747
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 128.575255,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.173265,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 125.00142699999999,
+          "total_ms": 125.865544
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.786526,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.286776,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.119895000000003,
+          "total_ms": 32.093056000000004
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 131.253374,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 300,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 7,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.216256,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.41939999999998,
+          "total_ms": 128.361333
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.051468,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.171661,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 128.343229,
+          "total_ms": 129.226914
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 137.066119,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.193172,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 133.323008,
+          "total_ms": 134.261513
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.28645,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.285503,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.487653999999996,
+          "total_ms": 32.532396999999996
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 130.257573,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 293,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 8,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.177332,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 126.60459600000002,
+          "total_ms": 127.47314200000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 39.600652,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.333034,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.173088,
+          "total_ms": 36.307731000000004
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 154.350219,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.231704,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 149.609418,
+          "total_ms": 150.64582800000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 158.018623,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.223658,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 153.246613,
+          "total_ms": 154.305154
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 153.043384,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.21987299999999999,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 148.288046,
+          "total_ms": 149.319067
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 39.651048,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.360053,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.338038000000005,
+          "total_ms": 36.467802
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 157.397651,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 7,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.232285,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 152.71458900000002,
+          "total_ms": 153.738965
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 39.544297,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 0,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.323235,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.176315,
+          "total_ms": 36.304496
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 155.829838,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.22445099999999998,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 151.03707,
+          "total_ms": 152.06771799999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 149.519432,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.214832,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 144.969257,
+          "total_ms": 146.005627
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 40.129131,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.329816,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.829215999999995,
+          "total_ms": 36.933562
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 152.199626,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.235982,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 147.607293,
+          "total_ms": 148.629886
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 148.543055,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.221997,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 143.987701,
+          "total_ms": 145.02067399999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 40.149479,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.319457,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.255523,
+          "total_ms": 36.406657
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 152.258195,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.243656,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 147.48869200000001,
+          "total_ms": 148.534198
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 156.284049,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.203852,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 151.80900499999998,
+          "total_ms": 152.812242
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 151.155653,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.219641,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 146.395847,
+          "total_ms": 147.451994
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 37.325606,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.356406,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 32.984344,
+          "total_ms": 34.117804
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 152.354897,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.238606,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 147.44516,
+          "total_ms": 148.50208800000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 150.085851,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.21485300000000002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 145.66758399999998,
+          "total_ms": 146.672776
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 153.950652,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.207639,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 149.368157,
+          "total_ms": 150.37958
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 38.595383,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.360785,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 34.133324,
+          "total_ms": 35.304424
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 152.703069,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.212778,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 148.169676,
+          "total_ms": 149.21669500000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 152.237257,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.216494,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 147.01236,
+          "total_ms": 148.048569
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 39.381995,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.321421,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 34.910287999999994,
+          "total_ms": 36.052314
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 155.208055,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.212098,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 150.68345,
+          "total_ms": 151.682719
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 156.517997,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.226684,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 151.78725400000002,
+          "total_ms": 152.830236
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 37.3756,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.334787,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 33.146828000000006,
+          "total_ms": 34.276291
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 41.446947,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.35374099999999997,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 36.728089,
+          "total_ms": 37.882548
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.957465,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.175509,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 129.29411,
+          "total_ms": 130.18155000000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.559992,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 8,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.166291,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 128.804274,
+          "total_ms": 129.69031
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 156.949213,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.222636,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 152.042022,
+          "total_ms": 153.087638
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 38.728932,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.347429,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 34.369385,
+          "total_ms": 35.495793
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 145.053697,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.238235,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 140.486522,
+          "total_ms": 141.513574
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 160.051678,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.243585,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 154.890221,
+          "total_ms": 156.106958
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 43.306186,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 40.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.536814,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 38.159225,
+          "total_ms": 39.544018
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 153.565233,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.228538,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 149.003245,
+          "total_ms": 150.040697
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 146.986022,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.20933200000000002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 142.393139,
+          "total_ms": 143.408829
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 38.895134,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 0,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.338121,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 34.559360999999996,
+          "total_ms": 35.704323
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 147.183561,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.22012099999999998,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 142.620214,
+          "total_ms": 143.63907
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 144.880382,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.223589,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 139.397695,
+          "total_ms": 140.46615300000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 37.585774,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.337281,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 33.291228,
+          "total_ms": 34.395905
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 151.652343,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.229298,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 147.001522,
+          "total_ms": 148.020929
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 147.561549,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.210975,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 143.02256699999998,
+          "total_ms": 144.04881699999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 130.771144,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.17379599999999998,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.110705,
+          "total_ms": 128.001713
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.355191,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.291977,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.486802,
+          "total_ms": 32.508925
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.288275,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 0,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.282549,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.107013,
+          "total_ms": 32.105209
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.54907,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 8,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.173253,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 128.55834299999998,
+          "total_ms": 129.482924
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 130.468167,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.171401,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 126.85987700000001,
+          "total_ms": 127.73866000000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 141.804378,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 294,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.192831,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 137.712512,
+          "total_ms": 138.627604
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 131.318107,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.17865399999999998,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.496628,
+          "total_ms": 128.40010900000001
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.935075,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.29944,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.965378,
+          "total_ms": 33.004543
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 155.843675,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.291426,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 150.64118200000001,
+          "total_ms": 151.91527599999998
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 154.691079,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.217136,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 149.990685,
+          "total_ms": 151.06391299999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.243419,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.28743799999999997,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 30.501609,
+          "total_ms": 31.493515
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 35.131682,
+        "peak_rss_kib": 5504,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.300662,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 31.283532,
+          "total_ms": 32.296678
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 131.523371,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.190308,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.887107,
+          "total_ms": 128.75062300000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 132.077728,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.16475800000000002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 128.458087,
+          "total_ms": 129.305802
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 129.65681,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.16598000000000002,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 125.98140299999999,
+          "total_ms": 126.861229
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 138.568733,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.191117,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 134.72661499999998,
+          "total_ms": 135.62402400000002
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 40.355426,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.325679,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 35.470707,
+          "total_ms": 36.642719
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 141.14273,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.196006,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 136.706229,
+          "total_ms": 137.821125
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 156.284079,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 3,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.217106,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 151.606949,
+          "total_ms": 152.627448
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.603853,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.31023999999999996,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 30.842577,
+          "total_ms": 31.849691999999997
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 129.943236,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.170548,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 126.32126900000002,
+          "total_ms": 127.19311
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.480693,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.273251,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 30.778246,
+          "total_ms": 31.761655
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 131.502453,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 295,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 6,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.164158,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 127.76937799999999,
+          "total_ms": 128.647942
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 136.930309,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 130.0,
+        "minor_faults": 298,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.22628399999999999,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 132.35595,
+          "total_ms": 133.503877
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 34.557528,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 294,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 1,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.32401599999999997,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 30.562262,
+          "total_ms": 31.587500999999996
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 130.30341,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 120.0,
+        "minor_faults": 299,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 5,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.180988,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 126.630528,
+          "total_ms": 127.50360099999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 41.249979,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 30.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.339465,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 36.497125999999994,
+          "total_ms": 37.721057
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 103219680
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 150.662131,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 140.0,
+        "minor_faults": 297,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 4,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.24501900000000001,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 146.021909,
+          "total_ms": 147.06332799999998
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    },
+    {
+      "argv": [
+        "project",
+        "cache-clear",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "metrics": {
+        "wall_ms": 155.606753,
+        "peak_rss_kib": 5376,
+        "user_ms": 0.0,
+        "system_ms": 150.0,
+        "minor_faults": 296,
+        "major_faults": 0,
+        "block_in": 0,
+        "block_out": 8,
+        "voluntary_switches": 1,
+        "involuntary_switches": 2,
+        "timings": {
+          "validation_ms": 0.0,
+          "read_ms": 0.205685,
+          "decode_ms": 0.0,
+          "process_ms": 0.0,
+          "encode_ms": 0.0,
+          "write_ms": 151.00291900000002,
+          "total_ms": 152.03096299999999
+        }
+      },
+      "data": {
+        "project": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "removed_bytes": 406426797
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "version",
+      "argv": [
+        "--version"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": null,
+      "store": false
+    },
+    {
+      "name": "jpeg1080_resize_adjust",
+      "argv": [
+        "run",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/1080.jpg",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/photo.json",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/jpeg1080_resize_adjust.jpg",
+        "--overwrite",
+        "--jpeg-quality",
+        "90",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/jpeg1080_resize_adjust.jpg",
+      "store": false
+    },
+    {
+      "name": "jpeg4k_adjust",
+      "argv": [
+        "run",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/4k.jpg",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/adjust.json",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/jpeg4k_adjust.jpg",
+        "--overwrite",
+        "--jpeg-quality",
+        "90",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/jpeg4k_adjust.jpg",
+      "store": false
+    },
+    {
+      "name": "png1080_transparent",
+      "argv": [
+        "run",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/1080.png",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/photo.json",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/png1080_transparent.png",
+        "--overwrite",
+        "--png-compression",
+        "6",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/png1080_transparent.png",
+      "store": false
+    },
+    {
+      "name": "layers4k",
+      "argv": [
+        "run",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/4k.jpg",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/layers.json",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k.png",
+        "--overwrite",
+        "--png-compression",
+        "6",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k.png",
+      "store": false
+    },
+    {
+      "name": "blur1080_sigma12",
+      "argv": [
+        "run",
+        "--input",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/1080.png",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/blur.json",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/blur1080_sigma12.png",
+        "--overwrite",
+        "--png-compression",
+        "6",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": null,
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/blur1080_sigma12.png",
+      "store": false
+    },
+    {
+      "name": "project_first_commit",
+      "argv": [
+        "project",
+        "apply",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--pipeline",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/fixtures/history.json",
+        "--expect-revision",
+        "r0",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/initial.pic",
+      "clear": false,
+      "replay": [
+        null,
+        0,
+        20
+      ],
+      "large": false,
+      "output": null,
+      "store": false
+    },
+    {
+      "name": "project_replay",
+      "argv": [
+        "project",
+        "export",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_replay.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+      "clear": true,
+      "replay": [
+        null,
+        0,
+        20
+      ],
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_replay.png",
+      "store": false
+    },
+    {
+      "name": "project_checkpoint",
+      "argv": [
+        "project",
+        "export",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_checkpoint.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": [
+        "checkpoint",
+        20,
+        0
+      ],
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_checkpoint.png",
+      "store": false
+    },
+    {
+      "name": "layers4k_replay",
+      "argv": [
+        "project",
+        "export",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k_replay.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+      "clear": true,
+      "replay": [
+        null,
+        0,
+        2
+      ],
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k_replay.png",
+      "store": false
+    },
+    {
+      "name": "layers4k_checkpoint",
+      "argv": [
+        "project",
+        "export",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k_checkpoint.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": [
+        "checkpoint",
+        2,
+        0
+      ],
+      "large": true,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers4k_checkpoint.png",
+      "store": false
+    },
+    {
+      "name": "project_preview_repeat",
+      "argv": [
+        "project",
+        "preview",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+        "--width",
+        "640",
+        "--filter",
+        "bilinear",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_preview.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": [
+        "preview",
+        20,
+        0
+      ],
+      "large": false,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/project_preview.png",
+      "store": false
+    },
+    {
+      "name": "layers4k_preview_repeat",
+      "argv": [
+        "project",
+        "preview",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+        "--width",
+        "960",
+        "--filter",
+        "bilinear",
+        "--output",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers_preview.png",
+        "--png-compression",
+        "6",
+        "--overwrite",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "source": null,
+      "clear": false,
+      "replay": [
+        "preview",
+        2,
+        0
+      ],
+      "large": true,
+      "output": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/outputs/layers_preview.png",
+      "store": false
+    },
+    {
+      "name": "project_revise18",
+      "argv": [
+        "project",
+        "revise",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--step-revision",
+        "r18",
+        "--params",
+        "{\"exposure\": 0.25, \"brightness\": 0, \"contrast\": 1, \"saturation\": 1.02}",
+        "--expect-revision",
+        "r20",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+      "clear": false,
+      "replay": [
+        "checkpoint",
+        17,
+        3
+      ],
+      "large": false,
+      "output": null,
+      "store": false
+    },
+    {
+      "name": "project_revise3",
+      "argv": [
+        "project",
+        "revise",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--step-revision",
+        "r3",
+        "--params",
+        "{\"exposure\": 0.25, \"brightness\": 0, \"contrast\": 1, \"saturation\": 1.02}",
+        "--expect-revision",
+        "r20",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/history.pic",
+      "clear": false,
+      "replay": [
+        "checkpoint",
+        2,
+        18
+      ],
+      "large": false,
+      "output": null,
+      "store": false
+    },
+    {
+      "name": "layers4k_checkpoint_store",
+      "argv": [
+        "project",
+        "checkpoint",
+        "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/sample.pic",
+        "--cache-memory-bytes",
+        "1073741824",
+        "--cache-disk-bytes",
+        "536870912",
+        "--json"
+      ],
+      "source": "/home/ubuntu/.herdr/worktrees/pic-cli/herdr-plan-fast-image-editing-11-core-performance/target/performance/baseline/layers.pic",
+      "clear": true,
+      "replay": [
+        null,
+        0,
+        2
+      ],
+      "large": true,
+      "output": null,
+      "store": true
+    }
+  ],
+  "finished_utc": "2026-09-19T12:59:46Z",
+  "machine_after": {
+    "platform": "Linux-6.8.0-31-generic-x86_64-with-glibc2.39",
+    "python": "3.14.7",
+    "cpu": {
+      "status": 0,
+      "stdout": "Architecture:                         x86_64\nCPU op-mode(s):                       32-bit, 64-bit\nAddress sizes:                        48 bits physical, 48 bits virtual\nByte Order:                           Little Endian\nCPU(s):                               8\nOn-line CPU(s) list:                  0-7\nVendor ID:                            AuthenticAMD\nModel name:                           AMD EPYC Processor\nCPU family:                           23\nModel:                                1\nThread(s) per core:                   2\nCore(s) per socket:                   4\nSocket(s):                            1\nStepping:                             2\nBogoMIPS:                             5789.12\nFlags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm rep_good nopl cpuid extd_apicid amd_dcm tsc_known_freq pni pclmulqdq ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext intel_ppin vmmcall fsgsbase bmi1 avx2 smep bmi2 rdseed adx smap clflushopt sha_ni xsaveopt xsavec xgetbv1 arat\nHypervisor vendor:                    KVM\nVirtualization type:                  full\nL1d cache:                            128 KiB (4 instances)\nL1i cache:                            256 KiB (4 instances)\nL2 cache:                             2 MiB (4 instances)\nL3 cache:                             8 MiB (1 instance)\nNUMA node(s):                         1\nNUMA node0 CPU(s):                    0-7\nVulnerability Gather data sampling:   Not affected\nVulnerability Itlb multihit:          Not affected\nVulnerability L1tf:                   Not affected\nVulnerability Mds:                    Not affected\nVulnerability Meltdown:               Not affected\nVulnerability Mmio stale data:        Not affected\nVulnerability Reg file data sampling: Not affected\nVulnerability Retbleed:               Mitigation; untrained return thunk; SMT vulnerable\nVulnerability Spec rstack overflow:   Vulnerable: Safe RET, no microcode\nVulnerability Spec store bypass:      Vulnerable\nVulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:             Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                  Not affected\nVulnerability Tsx async abort:        Not affected\n",
+      "stderr": ""
+    },
+    "memory": "MemTotal:       16367340 kB\nMemFree:         2748136 kB\nMemAvailable:   11966712 kB\nBuffers:          285252 kB\nCached:          8515012 kB\nSwapCached:            0 kB\nActive:          8302208 kB\nInactive:        3785392 kB\nActive(anon):    2708236 kB\nInactive(anon):   777792 kB\nActive(file):    5593972 kB\nInactive(file):  3007600 kB\nUnevictable:       27284 kB\nMlocked:           27284 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:              2680 kB\nWriteback:             0 kB\nAnonPages:       3314644 kB\nMapped:           660684 kB\nShmem:            189940 kB\nKReclaimable:     954692 kB\nSlab:            1135596 kB\nSReclaimable:     954692 kB\nSUnreclaim:       180904 kB\nKernelStack:       11136 kB\nPageTables:        30832 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     8183668 kB\nCommitted_AS:    3148392 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:       28720 kB\nVmallocChunk:          0 kB\nPercpu:            24192 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:     16384 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      147304 kB\nDirectMap2M:     7192576 kB\nDirectMap1G:    11534336 kB\n",
+    "affinity": [
+      0
+    ],
+    "load": [
+      4.36767578125,
+      3.84033203125,
+      3.4833984375
+    ],
+    "disk": {
+      "status": 0,
+      "stdout": "Filesystem     Type 1K-blocks      Used Available Use% Mounted on\n/dev/vdb       ext4 112947452 108611288   4319780  97% /home/ubuntu\n",
+      "stderr": ""
+    },
+    "mount": {
+      "status": 0,
+      "stdout": "TARGET       SOURCE   FSTYPE OPTIONS\n/home/ubuntu /dev/vdb ext4   rw,relatime,discard\n",
+      "stderr": ""
+    },
+    "block_devices": {
+      "status": 0,
+      "stdout": "NAME    TYPE  SIZE ROTA MODEL\nvda     disk   40G    1 \n\u251c\u2500vda1  part   39G    1 \n\u251c\u2500vda14 part    4M    1 \n\u251c\u2500vda15 part  106M    1 \n\u2514\u2500vda16 part  913M    1 \nvdb     disk  110G    1 \n",
+      "stderr": ""
+    },
+    "cgroup": "0::/user.slice/user-1000.slice/session-2.scope\n",
+    "cpu_max": null,
+    "memory_max": null,
+    "rustc": {
+      "status": 0,
+      "stdout": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+      "stderr": ""
+    },
+    "cargo": {
+      "status": 0,
+      "stdout": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n",
+      "stderr": ""
+    },
+    "vips": {
+      "unavailable": "[Errno 2] No such file or directory: 'vips'"
+    },
+    "rss_sampler": {
+      "status": 0,
+      "stdout": "time (GNU Time) UNKNOWN\nCopyright (C) 2018 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by David Keppel, David MacKenzie, and Assaf Gordon.\n",
+      "stderr": ""
+    },
+    "build_env": {
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null,
+      "CARGO_BUILD_TARGET": null,
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": null,
+      "CARGO_PROFILE_RELEASE_LTO": null,
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": null,
+      "RAYON_NUM_THREADS": null
+    },
+    "build": "cargo build --locked --release; default release profile; no added features",
+    "cargo_toml_sha256": "e3413ab8315c95f9b2ca0f6b45391a00312fa244564956286235ac48a4cb5f7b",
+    "cargo_lock_sha256": "fce82a52e52097b3593311db34221c4a4823eea9b51cc4ab2a6d9e34a1695677",
+    "git_head": {
+      "status": 0,
+      "stdout": "bbd387f08fe4ed2104b91aca61abf36947f4a5ef\n",
+      "stderr": ""
+    },
+    "git_diff": {
+      "status": 0,
+      "stdout": " README.md                                   |  4 +-\n crates/pic-core/src/codec.rs                | 65 +++++++++++++++++---\n crates/pic-core/src/project.rs              | 51 ++++++++--------\n crates/pic-core/src/project/tests/layers.rs | 92 +++++++++++++++++++++++++++++\n 4 files changed, 178 insertions(+), 34 deletions(-)\n",
+      "stderr": ""
+    }
+  }
+}

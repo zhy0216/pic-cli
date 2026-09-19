@@ -491,3 +491,104 @@ fn layered_restore_rejects_flat_checkpoint_even_with_matching_identity_and_check
         same_document(&original.document, &restored.document);
     }
 }
+
+#[test]
+fn every_layered_prefix_matches_direct_pixels_across_chunks_and_checkpoint_tiers() {
+    let (dir, input, path) = fixture();
+    mask_file(dir.path());
+    create(&input, &path);
+    let ops = vec![
+        add("input.png"),
+        spec(
+            "adjust",
+            "subject",
+            json!({"exposure":3.123456789,"brightness":-0.23,"contrast":1.31,"saturation":0.7}),
+        ),
+        spec("mask_set", "subject", json!({"source":"mask.png"})),
+        spec(
+            "layer_transform",
+            "subject",
+            json!(Transform {
+                x: 0.125,
+                y: -0.75,
+                degrees: 17.0,
+                ..Transform::default()
+            }),
+        ),
+        spec(
+            "layer_set",
+            "subject",
+            json!({"blend":"overlay","opacity":0.73}),
+        ),
+        spec("invert", "base", json!({})),
+        spec("crop", "canvas", json!({"x":1,"y":1,"width":6,"height":3})),
+    ];
+    // The persisted commit admission limit also uses max_operations. Keep each commit
+    // within two steps, while the complete history still requires several replay chunks.
+    for (index, chunk) in ops.chunks(2).enumerate() {
+        apply(
+            &path,
+            &pipeline(dir.path(), chunk.to_vec()),
+            &format!("r{}", index * 2),
+        )
+        .unwrap();
+    }
+    let manifest = fs::read(path.join("manifest.json")).unwrap();
+    let limits = ResourceLimits {
+        max_operations: 2, // Force several pipeline executions within one restore.
+        ..ResourceLimits::default()
+    };
+    let source = codec::load(&input, &limits, &mut Diagnostics::default())
+        .unwrap()
+        .raster;
+    for index in 0..=ops.len() {
+        let revision = format!("r{index}");
+        let expected = pipeline(dir.path(), ops[..index].to_vec())
+            .execute(source.clone())
+            .unwrap();
+        let check = |restored: &RestoredRevision| {
+            super::replay::exact(&expected.raster, &restored.raster);
+            same_document(&expected.document, &restored.document);
+        };
+        // With no checkpoint, the last chunk's canvas must be returned, including new dimensions.
+        let project = Project::open(&path, &limits, &mut Diagnostics::default()).unwrap();
+        project.clear_cache(&mut Diagnostics::default()).unwrap();
+        let cold = project
+            .restore(Some(&revision), &mut Diagnostics::default())
+            .unwrap();
+        assert_eq!(cold.operations_replayed, index);
+        assert!(cold.replay.cache_hit.is_none());
+        check(&cold);
+        let checkpoint = project
+            .checkpoint(Some(&revision), &mut Diagnostics::default())
+            .unwrap();
+        assert!(checkpoint.disk_stored && checkpoint.memory_stored);
+        for (project, tier) in [
+            (project, "memory"),
+            (
+                Project::open(&path, &limits, &mut Diagnostics::default()).unwrap(),
+                "disk",
+            ),
+        ] {
+            let cached = project
+                .restore(Some(&revision), &mut Diagnostics::default())
+                .unwrap();
+            assert_eq!(cached.replay.cache_hit.as_ref().unwrap().tier, tier);
+            assert_eq!(cached.replay.reused_steps, index);
+            assert_eq!(cached.operations_replayed, 0);
+            check(&cached);
+            // A cached canvas must not survive a suffix which changes layer pixels or geometry.
+            if index < ops.len() {
+                let suffix = project.restore(None, &mut Diagnostics::default()).unwrap();
+                let full = pipeline(dir.path(), ops.clone())
+                    .execute(source.clone())
+                    .unwrap();
+                assert_eq!(suffix.replay.reused_steps, index);
+                assert_eq!(suffix.operations_replayed, ops.len() - index);
+                super::replay::exact(&full.raster, &suffix.raster);
+                same_document(&full.document, &suffix.document);
+            }
+        }
+        assert_eq!(fs::read(path.join("manifest.json")).unwrap(), manifest);
+    }
+}

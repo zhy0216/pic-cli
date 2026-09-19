@@ -1,0 +1,25 @@
+{
+  "success_samples_per_binary": 480,
+  "warmups_per_binary": 16,
+  "scenarios": 16,
+  "samples_per_scenario": 30,
+  "all_iterations_present": true,
+  "all_manifest_hashes_stable_within_each_scenario": true,
+  "all_output_hashes_stable_and_equal_between_binaries": true,
+  "all_replay_reports_stable": true,
+  "fixtures_budgets_runner_generator_affinity_build_env_and_normalized_argv_equal": true,
+  "binary_sha256": [
+    "9a99a79b734fd37bfe51330837df72510ef1ace59cc3e2a727283f1d19aa779a",
+    "98ed3ff3ebf4aefcb1030c7742179a4d9221005dea7998b8502295487fb94f50"
+  ],
+  "load_1m_range": [
+    [
+      2.6123046875,
+      4.83544921875
+    ],
+    [
+      2.4228515625,
+      5.32861328125
+    ]
+  ]
+}
