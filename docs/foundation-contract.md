@@ -32,7 +32,7 @@ RGB 可保留有限的负值和大于 1 的值，不在步骤间裁切或量化�
 
 ## 操作、顺序与坐标
 
-`OperationSpec` 是请求规格，`validate` 得到可执行 `Operation`。支持 `identity/crop/resize/rotate/flip/canvas/adjust/levels/curves/grayscale/invert/blur/sharpen` v1；旧单画布目标为 `canvas`，也可显式指定稳定图层 ID 编辑本地像素；新增 composite/图层/蒙版/选区操作及多层 canvas 限制见 [图层契约](layers-masks.md)。identity/grayscale/invert 参数为 `{}`。JSON 的版本、目标、采样、背景及调色/滤镜参数显式必填，resize 的宽高至少一个非 null；CLI 的默认值会补齐到返回的 `steps[].params`，未来 ops 可复用同一规格。未支持的操作、参数、版本、目标和未知字段都拒绝，不退化为空操作。
+`OperationSpec` 是请求规格，`validate` 得到可执行 `Operation`。支持 `identity/crop/resize/rotate/flip/canvas/adjust/levels/curves/grayscale/invert/blur/sharpen` v1；旧单画布目标为 `canvas`，也可显式指定稳定图层 ID 编辑本地像素；新增 composite/图层/蒙版/选区操作及多层 canvas 限制见 [图层契约](layers-masks.md)。identity/grayscale/invert 参数为 `{}`。JSON 的版本、目标、采样、背景及调色/滤镜参数显式必填，resize 的宽高至少一个非 null；CLI 的默认值会补齐到返回的 `steps[].params`，工程 ops 复用同一规格。未支持的操作、参数、版本、目标和未知字段都拒绝，不退化为空操作。
 
 `PipelineSpec` 固定为 `{"schema_version":1,"operations":[...]}`。整个管线先解析和校验，再读取图片；数组顺序就是执行顺序。`Pipeline::execute` 经 `execute_document` 逐步调用 `Document::apply`，按稳定目标分派像素、合成、图层、蒙版及选区操作，返回从 0 开始的逻辑步骤索引。普通像素操作继续复用 `Operation::apply_with_limits`，最终由同一 Document 渲染画布。文件处理的单操作 CLI 用 `Pipeline::single` 创建一步管线，然后与 `run` 一起进入 `pipeline::run`；工程命令复用同一 Document 分派核心。未进行步骤融合或重排；主输入在单次文件处理中只解码一次，新增图层、蒙版及 composite 的外部素材按相应操作分别解码。最终输出编码一次，不生成中间有损图像。
 
@@ -57,7 +57,7 @@ CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返
 
 ## 资源准入
 
-`ResourceLimits::default()` 同时用于 CLI 与能力输出，库调用可显式传入更小/不同限额；本版没有资源限额 CLI 参数。
+`ResourceLimits::default()` 同时用于 CLI 与能力输出，库调用可显式传入更小/不同限额；核心像素准入限额没有 CLI 参数；工程派生缓存另提供 `--cache-disk-bytes` / `--cache-memory-bytes`，不能用它们扩大核心像素预算。
 
 | 限制 | 默认值 |
 | --- | --- |
@@ -99,7 +99,7 @@ CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返
 }
 ```
 
-上例省略具体 `data` 内容，耗时仅示意。成功的 `error=null`，失败的 `data=null` 且 `error={"code":"...","message":"..."}`。调用方按 code 分支，message 不作为稳定解析接口。代码包括 `invalid_argument`、`invalid_json`、`unsupported_version`、`unknown_operation`、`invalid_target`、`file_not_found`、`io_error`、`unsupported_format`、`unsupported_color`、`unsupported_metadata`、`decode_failed`、`encode_failed`、`output_exists`、`alpha_not_supported`、`resource_limit`。退出码为 0/1/2（成功/执行错误/CLI 解析错误）。
+上例省略具体 `data` 内容，耗时仅示意。成功的 `error=null`，失败的 `data=null` 且 `error={"code":"...","message":"..."}`。调用方按 code 分支，message 不作为稳定解析接口。代码包括 `invalid_argument`、`invalid_json`、`unsupported_version`、`unknown_operation`、`invalid_target`、`file_not_found`、`io_error`、`unsupported_format`、`unsupported_color`、`unsupported_metadata`、`decode_failed`、`encode_failed`、`output_exists`、`alpha_not_supported`、`resource_limit`。退出码为 0/1/2（成功/执行错误/CLI 解析错误）。完整错误列表（含工程、图层、字体）及恢复步骤见 [错误指南](errors.md)。
 
 耗时是单调时钟的毫秒浮点数，失败阶段也计时；未运行的阶段为 0。以下阶段归属仅描述 stateless 文件处理：validation 包含管线读取/解析和输出校验；read 只含图像读取；decode 包含准入和转换为工作像素；process 包含有序操作和最终合成（操作内部外部图层／蒙版读取及解码也在此阶段）；encode 包含导出量化和压缩；write 包含创建临时文件、写入、flush、发布、关闭。工程模式沿用相同字段，其实际归属见 [工程模式计时](project-history.md#工程模式计时)。
 

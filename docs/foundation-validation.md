@@ -1,6 +1,8 @@
-# 任务 01 验收记录
+# 任务 01 历史验收记录
 
-2026-09-19，本任务 worktree，Linux x86_64 / Rust 1.98.1。实现范围为基础 workspace、codec 子集、identity/空管线、结果与后续工程契约。智能能力仅标记 roadmap，未增加任何模型后端或依赖。plan.md 保持原样，由协调器统一更新范围。
+以下保留任务 01 完成时的历史证据，24 个测试不是当前仓库测试总数。当前直接编辑/打包校验见 [任务 12 验收](packaging-validation.md)，性能见 [当前报告](performance.md)。
+
+2026-09-19，任务 01 worktree，Linux x86_64 / Rust 1.98.1。实现范围为基础 workspace、codec 子集、identity/空管线、结果与后续工程契约。智能能力仅标记 roadmap，未增加任何模型后端或依赖。plan.md 保持原样，由协调器统一更新范围。
 
 ## 验收对应关系
 
@@ -32,4 +34,4 @@
 
 任务 01 无剩余 blocker。后续操作沿用 `operation::OperationSpec` / `Operation::apply`、`Pipeline::single` / `Pipeline::execute` / `pipeline::run`，采用明确版本与资源解析。`document::Raster` 是工作像素，不是可独立修改的持久化工程状态；源素材/不可变 ops 才是后续工程权威依据。
 
-PNG/JPEG 限于契约子集，ICC/gamma/chromaticity/HDR/EXIF、动画及高位深明确拒绝；JPEG 透明导出必须改用 PNG。尚无真实几何/调色、图层、历史、检查点、预览功能，也没有模型调用。平台只验证当前 Linux/ext4；fsync、崩溃遗留临时文件清理、严格 RSS 预算和大图性能仍未覆盖。
+任务 01 当时仅覆盖基础 codec/identity，并拒绝 EXIF；这是历史范围，不是当前能力。后续任务已实现几何/调色、图层/文字、历史/检查点/预览、EXIF 方向 1–8 归一化及显式 JPEG 铺底，当前范围见 [功能矩阵](capability-matrix.md)。ICC/gamma/chromaticity/HDR、动画与高位深仍拒绝。Linux 为已验证平台；无 fsync 保证、崩溃遗留临时文件自动清理或严格 RSS 上限。大图性能已测，见 [任务 11 报告](performance.md)。模型功能仍未实现。

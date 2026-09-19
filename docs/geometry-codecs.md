@@ -1,6 +1,6 @@
 # 几何与编解码契约（任务 02）
 
-全部操作扩展既有 `OperationSpec → Operation → Pipeline → Raster` 核心，目标为 `canvas`，`op_version=1`。单命令和 `run` 共用解析后的操作及文件处理入口。没有新增工程状态、检查点或模型能力；后续持久化仍以原始素材和不可变 ops 为权威。
+全部操作扩展既有 `OperationSpec → Operation → Pipeline → Raster` 核心，`op_version=1`；单画布目标为 `canvas`，当前亦可对 raster 图层 ID 编辑本地像素，限制见 [图层契约](layers-masks.md)。单命令和 `run` 共用解析后的操作及文件处理入口。本任务当时只添加几何能力；当前工程/检查点见 [工程历史](project-history.md) 与 [重放/预览](replay-preview.md)，仍以原始素材和不可变 ops 为权威。模型功能仅为未来规划。
 
 ## 命令和 JSON
 
@@ -54,7 +54,7 @@ pic-cli run --input photo.png --pipeline geometry.json --output result.jpg \
 - 相同尺寸 resize、0°/±360° rotate 直接共享原像素；180° 旋转始终精确。90°/270° 在 expand=true 或正方形画布上精确复制。
 - bilinear 过滤混合的是 `(r*a,g*a,b*a,a)`，不会让透明黑或隐藏颜色渗入边缘；过滤结果 alpha=0 时 RGB 统一为 0。它不保留全透明区域的隐藏色，这是明确的重采样语义；identity/整数复制不受影响。
 
-缩放的 nearest 在每轴取 `floor((d+0.5)*source_size/destination_size)`，在精确中点选择右/下像素。bilinear 使用锁定的 **fast_image_resize 5.5.0**，以 F32x4 的线性预乘像素执行 triangular convolution。缩小时按比例扩大核以抗锯齿，边界截断核并重新归一化；放大时使用相邻两点。禁用库内重复 alpha 转换，不开启 Rayon；用安全的 bytemuck 切片视图连接既有 Raster 和采样器，不建立第二个像素状态。选择 5.5.0 是因为其声明的 Rust 最低版本为 1.87，兼容 workspace 的 1.88 要求；本机实际验证使用已安装的编译器。此任务实现并验证正确性，性能比较留给任务 11，不宣称比其他引擎更快。上游要求调用方处理线性色彩转换，参见 [fast_image_resize 文档](https://docs.rs/fast_image_resize/5.5.0/fast_image_resize/)。
+缩放的 nearest 在每轴取 `floor((d+0.5)*source_size/destination_size)`，在精确中点选择右/下像素。bilinear 使用锁定的 **fast_image_resize 5.5.0**，以 F32x4 的线性预乘像素执行 triangular convolution。缩小时按比例扩大核以抗锯齿，边界截断核并重新归一化；放大时使用相邻两点。禁用库内重复 alpha 转换，不开启 Rayon；用安全的 bytemuck 切片视图连接既有 Raster 和采样器，不建立第二个像素状态。选择 5.5.0 是因为其声明的 Rust 最低版本为 1.87，兼容 workspace 的 1.88 要求；本机实际验证使用已安装的编译器。此任务实现并验证正确性，任务 11 的后续性能测量见 [当前报告](performance.md)，不宣称比其他引擎更快。上游要求调用方处理线性色彩转换，参见 [fast_image_resize 文档](https://docs.rs/fast_image_resize/5.5.0/fast_image_resize/)。
 
 任意角旋转默认输出：
 
@@ -122,4 +122,4 @@ canvas 的九个锚点为 `top_left, top, top_right, left, center, right, bottom
 | `git diff --check` | 通过；归档和暂存后另查 `git diff --cached --check` |
 | `PIC_CLI_BIN="$PWD/target/release/pic-cli" cargo test -p pic-cli --test cli` | 实际 release 二进制的 21 个独立进程集成测试全部通过 |
 
-无外部 blocker。当前只验证本机 Linux；ICC 转换、高位深/其他格式、高阶插值和跨平台浮点逐位一致性不在实现范围。极端宽高比可能触发保守 scratch 预算。工程持久化及 expected_revision 的既定契约未改变，本任务没有预先实现它们。
+无外部 blocker。当前只验证本机 Linux；ICC 转换、高位深/其他格式、高阶插值和跨平台浮点逐位一致性不在实现范围。极端宽高比可能触发保守 scratch 预算。工程持久化及 expected_revision 的既定契约未改变，它们已在后续 [工程任务](project-history.md) 实现。

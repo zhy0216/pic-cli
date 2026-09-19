@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "operations": [
+    {"op":"crop","op_version":1,"target":"canvas","params":{"x":8,"y":8,"width":160,"height":96}},
+    {"op":"adjust","op_version":1,"target":"canvas","params":{"exposure":0.5,"brightness":0,"contrast":1,"saturation":1.1}}
+  ]
+}

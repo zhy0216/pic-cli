@@ -1,6 +1,6 @@
 # fast-image-editing 执行队列
 
-依据：../plan.md。用户最新限定本轮只做无需 LLM/模型的直接编辑；原智能任务 08/09/10/13 移到 ../roadmap/。保留已有任务编号以便跟踪。仓库尚无产品源码；下列路径为按方案模块划分的待建路径，01 建立真实布局后，后续任务按实际模块位置实现，不另造平行架构。
+依据：../plan.md。用户最新限定本轮只做无需 LLM/模型的直接编辑；原智能任务 08/09/10/13 移到 ../roadmap/。保留已有任务编号以便跟踪。仓库已建立 pic-core/pic-cli workspace，后续任务扩展同一核心。下表各已完成任务的测试数量是该任务完成时的历史记录，不是当前总数。
 
 ## 执行偏好
 
@@ -22,7 +22,7 @@ default_reasoning_effort: max
 | [done/06-layers-masks.md](done/06-layers-masks.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | 稳定图层、无损变换、四模式混合、coverage 蒙版、选区、完整检查点与坐标预览完成；109 项测试与 46 项 release CLI 回归通过 |
 | [done/07-groups-text-adjustment.md](done/07-groups-text-adjustment.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | 隔离组、剪贴、真实字体排版、非破坏调整及完整检查点完成；127 项测试、49 项 release CLI、文字里程碑与 4K 双层验收通过 |
 | [done/11-core-performance.md](done/11-core-performance.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | 16 场景前后各 30 次 release 基准、精确查表与重放去重完成；45 组解码比较、129 项测试及完整校验通过 |
-| 12-agent-packaging.md | P1 | hard | codex（继承） | gpt-6-astra / max | pending | agent 文档、示例和基础功能打包验收 |
+| [done/12-agent-packaging.md](done/12-agent-packaging.md) | P1 | hard | codex（继承） | gpt-6-astra / max | done | agent 指南/错误恢复、58 回执/48 命令、独立解包与图层/4K 验收、129 项测试及完整校验通过 |
 
 ## 文件
 
@@ -36,7 +36,7 @@ default_reasoning_effort: max
 6. [done/06-layers-masks.md](done/06-layers-masks.md)；依赖 05-replay-preview.md；已完成并保留验收证据。
 7. [done/07-groups-text-adjustment.md](done/07-groups-text-adjustment.md)；依赖 06-layers-masks.md；已完成并保留验收证据。
 8. [done/11-core-performance.md](done/11-core-performance.md)；依赖 07-groups-text-adjustment.md；已完成并保留原始性能与像素证据。
-9. 12-agent-packaging.md；依赖 11-core-performance.md。
+9. [done/12-agent-packaging.md](done/12-agent-packaging.md)；依赖 11-core-performance.md；已完成并保留打包/独立验收复跑入口。
 
 直接编辑各阶段均扩展同一操作/CLI/工程契约，按此依赖链串行实施，不为了并行而重叠写公共模块。智能选型任务已不在本轮，不再作为可并行工作分发。
 

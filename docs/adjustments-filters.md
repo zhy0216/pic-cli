@@ -93,7 +93,7 @@ sharpen 是无阈值的 unsharp mask：B 为同一 blur v1 的 f32 输出，对�
 
 资源准入在分配前检查：点操作同时存活原图和输出，按 `32*N` 字节；blur 按原图 `16*N`、水平缓冲 `32*N`、输出 `16*N` 和核 `8*(2r+1)` 字节计入预算。sharpen 在 blur 后需要 `48*N` 字节（原图、模糊图、锐化输出），峰值不超过上述 blur 预算。所有自有缓冲使用可失败预分配，pipeline 的构造限额和调用方更小限额都生效。全进程 RSS 的既有边界见 [基础执行契约](foundation-contract.md)。
 
-当前实现按标量顺序执行，不融合逻辑操作、不开启线程池。两轴高斯是上述核的明确实现，计算量随像素数和 sigma 增加；大图/大 sigma 的性能评估及优化留给任务 11。浮点结果不承诺跨 CPU/编译器逐位相同。
+当前实现按标量顺序执行，不融合逻辑操作、不开启线程池。两轴高斯是上述核的明确实现，计算量随像素数和 sigma 增加；任务 11 已测量 1080p sigma=12 模糊及 1080p/4K 调色，见 [当前性能报告](performance.md)。浮点结果不承诺跨 CPU/编译器逐位相同。
 
 ## 有序管线和发布
 
@@ -122,7 +122,7 @@ pic-cli run --input photo.png --pipeline editing.json --output result.png --json
 
 参数验证在图像 I/O 前完成；运行时无法表示的非有限结果、超限缓冲等在执行步骤上返回 `operations[index]` 错误。所有步骤成功才进入编码和原子发布；失败 `ok=false`、`data=null`、非零退出码，不创建成功目标，已有文件保持原样。JSON 语法中的 NaN/Infinity/溢出数值返回 `invalid_json`，类型/范围错误返回 `invalid_argument`。不支持 alpha 的 JPEG 导出仍需显式背景。
 
-源素材/不可变 ops、expected_revision 和检查点精度的既有契约不变。本任务没有工程持久化实现；后续工程直接复用这些版本化操作和逻辑边界。
+源素材/不可变 ops、expected_revision 和检查点精度的既有契约不变。任务 03 当时未实现工程持久化；当前 [工程历史](project-history.md) 与 [重放/检查点](replay-preview.md) 已复用这些版本化操作和逻辑边界。
 
 ## 验收证据
 
@@ -138,4 +138,4 @@ pic-cli run --input photo.png --pipeline editing.json --output result.png --json
 | 几何+调色+滤镜真实导出 | `geometry_adjustment_and_filters_export_known_pixels_to_png_and_jpeg`：crop→flip→rotate→adjust→blur→sharpen，PNG 的独立预期灰值 171/85、alpha 128；JPEG 显式铺白后预期 218/195，编码容差 2 |
 | 非法参数与失败无输出 | 核心覆盖必填/未知字段、范围、通道、曲线形状和所有浮点字段的 NaN/±Inf；真实 CLI 验证无新输出/旧输出不变、非法 JSON、运行时溢出步骤定位及编码/发布未执行；额外滤镜缓冲限额测试 |
 
-完整校验结果在当前 todo 归档中记录。已知范围限制：当前仅本机 Linux 验证；不支持三次曲线、其他滤镜核/边界模式、ICC/高位深输入；性能尚未按照片尺寸建立新基线，无 Photoshop 像素兼容承诺。
+完整校验结果在当前 todo 归档中记录。已知范围限制：当前仅本机 Linux 验证；不支持三次曲线、其他滤镜核/边界模式、ICC/高位深输入；固定素材的照片尺寸基线已建立，见 [性能报告](performance.md)；无 Photoshop 像素兼容承诺。

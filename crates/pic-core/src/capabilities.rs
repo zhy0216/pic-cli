@@ -139,7 +139,7 @@ pub fn capabilities() -> Capabilities {
                 id: "pipeline",
                 status: Partial,
                 scope: "current",
-                details: "Schema v1, ordered pixel, composite, layer, mask and selection operations with explicit targets/parameters and logical steps; unknown operations rejected. Input/resources decode to RGBA32F; final encode only, no intermediate quantization or step fusion.",
+                details: "Schema v1, ordered pixel, composite, layer, mask, selection, group, clipping, text and adjustment-layer operations with explicit targets/parameters and logical steps; unknown operations rejected. Input/resources decode to RGBA32F; final encode only, no intermediate quantization or step fusion.",
             },
             Capability {
                 id: "png",
@@ -221,7 +221,7 @@ fn operation_capabilities() -> Vec<OperationCapability> {
             op: "identity",
             op_version: OP_VERSION,
             targets: vec!["canvas", "layer_id"],
-            params: serde_json::json!({}),
+            params: empty.clone(),
             semantics: "Exact f32 samples and shared storage.",
         },
         OperationCapability {

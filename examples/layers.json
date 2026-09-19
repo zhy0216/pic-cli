@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "operations": [
+    {"op":"group_add","op_version":1,"target":"canvas","params":{"id":"layout","name":"Layout","width":192,"height":128}},
+    {"op":"layer_add","op_version":1,"target":"canvas","params":{"id":"subject","name":"Subject","source":"../subject.png"}},
+    {"op":"layer_parent","op_version":1,"target":"subject","params":{"parent":"layout","before":null}},
+    {"op":"mask_set","op_version":1,"target":"subject","params":{"source":"../mask.png"}},
+    {"op":"layer_transform","op_version":1,"target":"subject","params":{"x":24,"y":16,"scale_x":1,"scale_y":1,"degrees":0,"flip_x":false,"flip_y":false,"filter":"nearest"}},
+    {"op":"text_add","op_version":1,"target":"canvas","params":{"id":"title","name":"Title","text":{"text":"Café ffi","font":"../font.ttf","size":24,"line_height":28,"width":128,"height":64,"align":"center","color":[255,255,255,255]}}},
+    {"op":"layer_parent","op_version":1,"target":"title","params":{"parent":"layout","before":null}},
+    {"op":"layer_transform","op_version":1,"target":"title","params":{"x":48,"y":56,"scale_x":1,"scale_y":1,"degrees":0,"flip_x":false,"flip_y":false,"filter":"bilinear"}},
+    {"op":"adjustment_add","op_version":1,"target":"canvas","params":{"id":"tone","name":"Tone","width":192,"height":128,"adjustment":{"op":"adjust","params":{"exposure":0.25,"brightness":0,"contrast":1,"saturation":1}}}},
+    {"op":"layer_clip","op_version":1,"target":"tone","params":{"base":"layout"}}
+  ]
+}

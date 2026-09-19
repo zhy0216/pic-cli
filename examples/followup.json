@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "operations": [
+    {"op":"sharpen","op_version":1,"target":"canvas","params":{"sigma":1,"amount":0.75}}
+  ]
+}

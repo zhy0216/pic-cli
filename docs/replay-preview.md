@@ -1,6 +1,6 @@
 # 重放、精确检查点、预览与模板
 
-任务 05 扩展既有单画布工程。源资产和不可变 ops 仍是唯一权威状态；读取、续编、修改参数、预览和导出共用原有 Pipeline / Operation / Raster。新增派生缓存不进入 manifest，也不改变 revision、整组撤销或 expected_revision 规则。任务 06 在同一路径新增图层、蒙版、选区及完整状态检查点，详见 [图层契约](layers-masks.md)；文字和模型操作尚未实现。
+任务 05 扩展既有单画布工程。源资产和不可变 ops 仍是唯一权威状态；读取、续编、修改参数、预览和导出共用原有 Pipeline / Operation / Raster。新增派生缓存不进入 manifest，也不改变 revision、整组撤销或 expected_revision 规则。任务 06 在同一路径新增图层、蒙版、选区及完整状态检查点，详见 [图层契约](layers-masks.md)；任务 07 已增加组、剪贴、文字和点调整层，见 [对应契约](groups-text-adjustments.md)。模型操作仍只在未来 roadmap。
 
 ## 按需检查点与安全恢复
 

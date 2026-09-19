@@ -35,7 +35,7 @@ mod typography;
 #[command(
     version,
     about = "Explicit image processing for agents",
-    long_about = "Explicit image processing for agents. PNG/JPEG codecs, geometry, color adjustments, filters and editable layers/masks in linear sRGB. Stable IDs, explicit selections and immutable project history. Ordered RGBA32F operations; quantization only at export. Coordinates use the current canvas after EXIF normalization. Query capabilities for equations, ranges and alpha behavior."
+    long_about = "Explicit image processing for agents. PNG/JPEG codecs, geometry, color adjustments, filters, editable layers/masks, isolated groups, clipping, text and adjustment layers in linear sRGB. Text requires an explicit static TrueType font (LTR Latin/Greek/Cyrillic subset). Self-contained projects, immutable ops, revision-checked edits, preview coordinate mappings and undo/redo. Ordered RGBA32F operations; quantization only at export. Coordinates use the current canvas after EXIF normalization. Use --json for one versioned result, including errors/help/version. Query capabilities for supported operations, parameter schemas and limits. Smart cutout, repair, generative fill and outpaint are future roadmap; no model configuration is available or required."
 )]
 struct Cli {
     /// Emit one compact, versioned JSON result (including errors/help/version)

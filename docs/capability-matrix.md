@@ -1,6 +1,6 @@
 # 功能与兼容性矩阵
 
-当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜、任务 04 工程历史、任务 05 重放/预览、任务 06 图层/蒙版及任务 07 分组/剪贴/文字/调整层。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
+当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜、任务 04 工程历史、任务 05 重放/预览、任务 06 图层/蒙版及任务 07 分组/剪贴/文字/调整层，并已完成任务 11 实测优化与任务 12 打包验收。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
 
 ## 三类功能目标
 
@@ -18,8 +18,8 @@
 | --- | --- | --- |
 | help / version / capabilities | supported | 文本或稳定 JSON，包括解析错误 |
 | info | supported | 对受支持输入完整解码并读取尺寸、通道、透明度及色彩假设 |
-| identity | supported | v1，target=canvas，params={}；单命令与管线共用核心，工作像素不变 |
-| run / pipeline | partial | schema_version=1，有序 identity/几何/调色/滤镜操作；每步以当前画布求值，保留逻辑索引和显式参数，未知操作拒绝 |
+| identity | supported | v1，target=canvas 或 raster 图层 ID，params={}；单命令与管线共用核心，工作像素不变 |
+| run / pipeline | partial | schema_version=1，有序 identity/几何/调色/滤镜/图层/蒙版/组/文字/调整层操作；每步以当前画布求值，保留逻辑索引和显式参数，未知操作拒绝 |
 | PNG codec | partial | 静态 8-bit 灰度/RGB/RGBA 输入、RGBA8 输出，压缩 0–9，默认 6；完整准入限制见执行契约 |
 | JPEG codec | partial | 8-bit 灰度/RGB/YCbCr 输入、RGB 输出；quality 1–100，默认 90；透明输入需显式不透明背景 |
 | EXIF 主图方向 | supported | PNG/JPEG 方向 1–8 归一化后查询/编辑；无效或重复 EXIF 拒绝 |
@@ -37,10 +37,16 @@
 
 | 维度 | 当前可验收事实 | 没有承诺的事项 |
 | --- | --- | --- |
-| 功能覆盖 | 信息查询、有序几何/调色/滤镜管线和真实 codec 子集 | 任何尚未实现的像素算法、图层行为或智能效果 |
+| 功能覆盖 | 信息查询、有序几何/调色/滤镜、图层/蒙版/文字、工程历史及真实 codec 子集 | 任何尚未实现的像素算法、图层行为或智能效果 |
 | 参数语义 | JSON/CLI 同一核心；几何采样、锚点、编码参数、EV/倍率、色阶/曲线与滤镜公式、通道和 alpha 行为明确 | Photoshop 滑杆值、默认值或专有算法一一对应 |
 | 输出质量 | PNG 接受范围内空管线解码 RGBA 精确；JPEG 固定小样本做误差检查 | 任意 JPEG 无损重编码、调色/生成效果与 Photoshop 像素一致 |
 | 文件保真 | 标准 PNG/JPEG 像素导出；归一化主图 EXIF 方向，拒绝未支持色彩与无效 EXIF | 元数据保留、PSD 往返、RAW、专业印刷色彩或高位深输入 |
-| 执行时延 | 本机新进程启动和小图 codec 的 30 次热文件缓存基线 | 比 Photoshop 或其他 CLI 更快、照片级编辑或跨平台时延门槛 |
+| 执行时延 | 本机 16 场景前后各 30 次 release 采样，包含 1080p/4K、图层和工程；见 [性能报告](performance.md) | 比 Photoshop 或其他 CLI 更快、所有 4K 编辑低于 1 秒或跨平台时延门槛 |
 
 具体输入限制和检查点精度约束见 [执行契约](foundation-contract.md)，基础测试见 [任务 01 验收记录](foundation-validation.md)，几何/EXIF 与实际进程验证见 [任务 02 契约与验收](geometry-codecs.md)，调色/滤镜及混合管线验证见 [任务 03 契约与验收](adjustments-filters.md)。
+
+## 平台、模型配置和交付状态
+
+已验证 Linux x86_64 / Ubuntu 24.04 / glibc 2.39 / Rust 1.98.1 的 release 包与仓库外临时 cwd；其他平台、Rust 声明下限 1.88 未验证，详见 [打包与安装](packaging.md)。`supported` 表示约定范围内可执行，不表示全平台或 Photoshop 完全兼容。
+
+目前没有“需模型配置才能启用”的已实现能力，capabilities 没有第四种 `requires_configuration` 状态。智能抠图/主体分割、修复、生成填充/扩图仍明确列入 [未来需求](../plans/fast-image-editing/roadmap/README.md)，状态是未实现，不因缺少模型配置而隐藏，也不要求本轮用户配置模型。

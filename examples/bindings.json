@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "inputs": {"input":"../new-photo.png"},
+  "targets": {"canvas":"canvas"},
+  "params": {
+    "step_1": {"x":16,"y":12,"width":128,"height":80},
+    "step_2": {"exposure":0.25,"brightness":0,"contrast":1,"saturation":1}
+  }
+}

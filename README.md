@@ -1,120 +1,66 @@
 # pic-cli
 
-面向 AI agent 的 Rust 图像编辑 CLI。调用方提供明确的操作和参数；本轮产品目标是普通像素编辑、图层合成、文字，以及基于源素材和不可变 ops 的工程历史与预览，不需要 LLM 或模型参与。智能抠图、分割、修复、生成填充/扩图仅列为未来 roadmap。
+面向 AI agent 的 Rust 图像编辑 CLI。调用方选择明确操作和参数，CLI 本地执行；普通编辑、图层/文字与自包含 ops 工程都不需要 LLM、图像模型或凭据。
 
-当前 **0.1.0** 已实现 PNG/JPEG 信息查询、EXIF 方向归一化、编解码参数、几何编辑，以及曝光 EV、亮度、对比度、饱和度、色阶、曲线、灰度、反相、高斯模糊和锐化的单命令与有序 JSON 管线。支持自包含 `.pic` 工程、不可变 ops、跨进程撤销/重做、精确浮点检查点、任意已提交步骤的区域/缩放预览与坐标映射、旧步骤参数修改和显式绑定的操作模板。已支持稳定 ID 图层、无损变换、四种线性光混合模式、外部 coverage 蒙版、显式坐标选区及独立图层／蒙版预览；已支持隔离图层组、显式剪贴依赖、非破坏点调整层，以及绑定内嵌字体的真实文字排版（Latin/Greek/Cyrillic 子集）。请以 `capabilities` 为机器可读的实际支持列表。
+当前 **0.1.0** 已提供 PNG/JPEG、几何、调色/滤镜、稳定 ID 图层与蒙版、隔离组/剪贴/文字/点调整层，以及跨进程历史、预览坐标映射、expected_revision 续编和单画布模板。智能抠图、主体分割、修复、生成填充/扩图保留在 [未来 roadmap](plans/fast-image-editing/roadmap/README.md)，尚未实现，也没有配置模型即可启用的后端。
 
-## 构建与使用
+## 构建与开始使用
 
-首轮验证平台为本机 Linux x86_64；其他平台尚未验证。依赖锁定在 `Cargo.lock`，`image` 仅开启 PNG/JPEG codec。小图启动记录见 [早期基线](docs/baseline.md)；1080p/4K 编辑、工程重放/检查点和历史修改的 30 轮 release 数据、预算与复跑方法见 [端到端性能报告](docs/performance.md)。
+已验证 Ubuntu 24.04 / Linux x86_64 / glibc 2.39，Rust/Cargo **1.98.1**。清单声明的 `rust-version=1.88` 尚未验证；其他平台也未验证。仅需锁定的 Rust 依赖，不依赖 reference/ 或原生图像库。
+
+以下构建命令在完整源码 checkout 运行。已解包的二进制包直接使用 `bin/pic-cli`，独立验收入口见 [打包指南](docs/packaging.md)。
 
 ```sh
-cargo build --release
+cargo build --locked --release
 target/release/pic-cli --help
 target/release/pic-cli --version
 target/release/pic-cli capabilities --json
-target/release/pic-cli info photo.png --json
-target/release/pic-cli identity --input photo.png --output copy.png --json
-target/release/pic-cli resize --input photo.jpg --width 1600 --output resized.jpg --jpeg-quality 90 --json
-target/release/pic-cli crop --input photo.png --x 100 --y 80 --width 640 --height 480 --output crop.png --json
-target/release/pic-cli rotate --input photo.png --degrees -30 --background '#00000000' --output rotated.png --json
-target/release/pic-cli flip --input photo.png --axis horizontal --output flipped.png --json
-target/release/pic-cli canvas --input photo.png --width 1920 --height 1080 --anchor center --output canvas.png --json
-target/release/pic-cli adjust --input photo.png --exposure 0.5 --saturation 1.1 --output adjusted.png --json
-target/release/pic-cli curves --input photo.png --points '[[0,0],[0.5,0.6],[1,1]]' --output curves.png --json
-target/release/pic-cli blur --input photo.png --sigma 2 --output blurred.png --json
-target/release/pic-cli sharpen --input photo.png --sigma 1 --amount 0.75 --output sharpened.png --json
 ```
 
-空管线仍会完整读取、解码、转换到工作像素、编码并原子发布输出；不保证压缩文件字节相同。生成临时示例：
+外部 agent 从 [执行指南](docs/agent-guide.md) 开始：它提供可生成的素材、带许可的明确字体绑定、真实命令和 [JSON 示例](examples/README.md)，完整走通普通处理、创建工程、观察坐标、继续编辑、undo/redo、模板换图及图层文字闭环。指南中的关键命令块由打包验收直接执行，避免示例语法与实现漂移。
+
+发布式构建、打包并在独立临时目录验收：
 
 ```sh
-pic_example_dir=$(mktemp -d)
-cat > "$pic_example_dir/pipeline.json" <<'JSON'
-{"schema_version":1,"operations":[]}
-JSON
-target/release/pic-cli run --input photo.png \
-  --pipeline "$pic_example_dir/pipeline.json" \
-  --output "$pic_example_dir/result.png" --json
+python3 scripts/package.py
 ```
 
-单操作使用同一核心入口；等价的 identity 管线为：
+需要 Python 3.12+ 标准库、sh、ldd、Git 和 Rust；产物位于 `target/dist/pic-cli-<随机后缀>/`，包含 tar.gz、`bin/pic-cli`、校验和、编译信息、字体许可及完整验收证据。脚本解包实际压缩包后运行指南、错误恢复和已有图层里程碑（含 4K 双层）；不依赖源码 cwd、外部导入文件或 reference/。二进制运行本身不需要 Python/Rust。安装、动态库与平台限制、包的单独重跑方式见 [构建/安装/打包](docs/packaging.md)，本轮结果见 [验收记录](docs/packaging-validation.md)。
 
-```json
-{
-  "schema_version": 1,
-  "operations": [
-    { "op": "identity", "op_version": 1, "target": "canvas", "params": {} }
-  ]
-}
-```
+## Agent 调用约定
 
-输出默认根据 `.png` / `.jpg` / `.jpeg` 后缀选格式，`--format png|jpeg` 可显式指定；JPEG 支持 `--jpeg-quality 1..100`（默认 90），PNG 支持 `--png-compression 0..9`（默认 6）。透明图导出 JPEG 默认报错；显式 `--jpeg-background '#ffffff'` 在线性光下铺底。覆盖现有文件必须加 `--overwrite`。失败保留已有输出。完整参数、采样公式、EXIF/ICC 范围及多步示例见 [几何与编解码契约](docs/geometry-codecs.md)，基础资源/发布规则见 [执行契约](docs/foundation-contract.md)。
+- `--json` 可放在子命令前后，stdout 恰好一个版本化 JSON 对象，help/version/解析错误也适用。成功 0、执行错误 1、CLI 解析错误 2；按 `ok` 和 `error.code` 判断。完整说明见 [错误与恢复](docs/errors.md)。
+- `capabilities --json` 返回可执行 `operations`、参数 schema、语义、限额与 `supported / partial / not_implemented` 状态。版本：结果、pipeline、document schema 均为 1，各操作 `op_version=1`；它们分别管理，不要与 revision 混用。
+- 图像处理命令用 `--input` / `--output`，`info` 的输入是位置参数。CLI 路径相对 cwd；管线素材路径相对 JSON 文件的规范化父目录。输出父目录须存在，覆盖普通文件需 `--overwrite`。
+- 一次管线按数组顺序执行；每步坐标使用当前画布，左上原点、x 向右、y 向下，像素中心 `(x+0.5,y+0.5)`。线性 sRGB RGBA32F 保留负值/高亮和 alpha，最终导出才量化。
+- `.pic` 保存原始素材、字体与不可变 ops；manifest 发布当前历史指针，检查点/预览缓存是可删除的加速副本。不要修改 ops 或用扁平 PNG 代替完整工程状态。
+- 工程编辑、undo/redo 必须带 `--expect-revision`。从旧步骤继续用 `--revision OLD --expect-revision CURRENT`；读旧步骤不移动指针。冲突时重新 inspect/preview/分析，不能盲目重试旧坐标。
 
-调色在线性 RGB 上计算，步骤之间保留 RGBA32F 的负值、高亮和透明度，最终导出才量化。`adjust` 按曝光→亮度→对比度→饱和度执行；`levels` / `curves` 支持 RGB 或单个色彩通道；JSON 参数显式必填。范围、默认值、色阶/曲线外延、模糊边界与 alpha 语义及管线示例见 [调色与滤镜契约](docs/adjustments-filters.md)。
+## 能力与明确限制
 
-`--json` 在子命令前后均可使用，stdout 只输出一个版本化 JSON 对象，包括帮助、版本和错误；其他诊断走 stderr。不加 `--json` 时数据命令输出缩进 JSON，help/version 输出文本。退出码：成功 0，执行错误 1，命令行解析错误 2。
+| 范围 | 当前能力与边界 |
+| --- | --- |
+| 输入/导出 | 静态 8-bit sRGB PNG/JPEG 子集，EXIF 主方向 1–8 归一化；ICC、高位深、调色板 PNG、动画、PSD/RAW 不支持。导出不保留元数据；透明 JPEG 需显式背景 |
+| 几何/调色 | crop、nearest/bilinear resize/rotate、flip、canvas；EV/亮度/对比度/饱和度、色阶、折线曲线、灰度、反相、高斯/unsharp。参数不等同 Photoshop 滑杆 |
+| 图层/蒙版 | 稳定 ID、显隐/排序/opacity、无损变换、normal/multiply/screen/overlay；外部 coverage 蒙版、显式空间矩形选区、单层/蒙版预览 |
+| 组/文字/调整 | 隔离有界组、同级下方 clip、五种点调整层；显式静态 TrueType、LTR Latin/Greek/Cyrillic 子集、LF 换行和固定框。无中文/bidi/自动换行/字体回退/pass-through 组 |
+| 工程/模板 | 整组提交/撤销/重做、任意已提交步骤恢复/续编、完整浮点检查点、旧参数修订。模板仅支持显式重绑定输入/目标/全部参数的单画布操作；图层树/蒙版/字体等模板拒绝 |
+| 智能能力 | 未实现，future roadmap；本轮没有模型调用、模型依赖或配置要求 |
 
-## 自包含工程
+详细参数与语义按工作类型阅读：
 
-```sh
-pic-cli project create --input photo.png --output work.pic --json
-pic-cli project apply work.pic --pipeline edits.json --expect-revision r0 --json
-pic-cli project inspect work.pic --json
-pic-cli project preview work.pic --revision r1 --output step.png --json
-pic-cli project checkpoint work.pic --revision r1 --json
-pic-cli project preview work.pic --revision r1 --region 100,80,640,480 --width 320 --output region.png --json
-pic-cli project export work.pic --output final.png --json
-pic-cli project cache-clear work.pic --json
-```
+| 工作 | 文档 |
+| --- | --- |
+| 几何、格式、EXIF、编码、颜色/alpha | [几何/codec](docs/geometry-codecs.md)、[执行与版本契约](docs/foundation-contract.md) |
+| EV、倍率、色阶/曲线、滤镜公式 | [调色与滤镜](docs/adjustments-filters.md) |
+| 资源持久化、锁、提交与历史 | [工程历史](docs/project-history.md) |
+| 中间观察、坐标映射、缓存预算、模板 | [重放与预览](docs/replay-preview.md) |
+| 图层/蒙版/选区、组/剪贴/文字/调整 | [图层](docs/layers-masks.md)、[文字与里程碑](docs/groups-text-adjustments.md) |
+| 状态与兼容性 | [功能矩阵](docs/capability-matrix.md) |
 
-`edits.json` 使用与 `run` 相同的管线格式且至少包含一步。每次 apply 是一个撤销组，每一步返回独立 revision；后续修改、`project undo` 和 `project redo` 必须以 `--expect-revision` 提供当前指针。读取旧步骤不会移动指针；续编用 `--revision r1` 选择基点，同时仍以当前指针作为 expected revision。新编辑使旧 redo 路径失效，原步骤可继续只读导出。
+## 性能与验证
 
-原始编码素材按 SHA-256 去重内嵌，移动工程、删除原始输入和管线文件后仍可完整重放；中途保持 RGBA32F，最终导出才量化。工程写锁、manifest 原子发布、路径约束、预算及使用示例见 [工程与历史契约](docs/project-history.md)。当前存储实现使用 POSIX 目录句柄、文件锁与原子 no-clobber rename，验收平台为 Linux；不承诺断电后的 fsync 持久性。
-
-`project checkpoint` 按需保存完整浮点状态，`project preview` 自动缓存指定观察规格，两者共用磁盘/内存预算；清除或损坏缓存后从有效前缀或源素材恢复。返回 `replay` 命中类型、复用步骤数和实际重算 revision；预览另含画布、区域、输出尺寸及双向坐标映射。修改旧步骤用 `project revise --step-revision rN --params '{...}' --expect-revision rCurrent`，旧版本保持可读。模板导出与换图运行用 `project template-export` / `project template-run`，要求新输入、目标和每步参数全部显式绑定。格式、预算、完整示例和验收见 [重放与预览契约](docs/replay-preview.md)。
-
-## 图层与蒙版
-
-```sh
-pic-cli composite --input background.png --overlay subject.png --mask mask.png --x 24 --y 16 --opacity 0.8 --blend screen --output composite.png --json
-pic-cli project layer add work.pic --id subject --source subject.png --expect-revision r0 --json
-pic-cli project mask set work.pic --target subject --source mask.png --expect-revision r1 --json
-pic-cli project layer transform work.pic --target subject --x 24 --y 16 --degrees 15 --expect-revision r2 --json
-pic-cli project preview work.pic --target subject --output layer.png --json
-pic-cli project preview work.pic --target mask:subject --output coverage.png --json
-```
-
-使用实际返回的 revision。图层重排、显隐、opacity、blend、选区及本地像素编辑都沿用同一不可变 ops 提交入口。灰度蒙版按编码值 coverage 解读，128 表示约 50.2% 覆盖率。多层检查点保存各层及蒙版的完整浮点状态，移动工程后仍独立可编辑。旧单 canvas 工程无需迁移；进入多层后 canvas 仅接受 identity、无损裁切和透明画布调整，其他像素操作须指定图层 ID。新图层／蒙版／选区操作的换图模板暂明确拒绝。参数、坐标、采样限制及验收见 [图层与蒙版契约](docs/layers-masks.md)。
-
-分组、剪贴、调整层及明确字体绑定的文字命令见 [契约与可复用里程碑](docs/groups-text-adjustments.md)。`project group add` 创建有明确边界的隔离组，`project layer parent/clip` 编辑依赖，`project text add/set` 保留可编辑排版参数，`project adjustment add/set` 作用于同组下方合成结果。文字无系统字体回退，支持范围与缺字错误在能力查询中明确列出。
-
-## 工程布局
-
-```text
-Cargo.toml / Cargo.lock        workspace 与唯一依赖锁
-crates/pic-core/src/
-  codec.rs, codec/             格式准入、读写、像素转换、原子发布
-  operation.rs, operation/    操作规格、参数校验、几何/调色/滤镜与统一执行接口
-  pipeline.rs                 有序执行、资源解析、文件处理入口
-  document.rs, document/, composite.rs, text.rs  完整可编辑状态、稳定图层、蒙版、选区、变换与线性光合成
-  project.rs, project/         自包含素材、不可变 ops、组历史、检查点、预览、模板与原子存储
-  limits.rs                   资源准入限制
-  result.rs, error.rs          版本化结果、错误、警告、阶段计时
-  capabilities.rs             实际能力清单
-crates/pic-core/tests/         核心精度、校验与发布测试
-crates/pic-cli/src/main.rs     clap 参数解析、JSON/文本输出、退出码
-crates/pic-cli/tests/          真实进程、文件与像素集成测试
-crates/pic-cli/examples/       可复现的小图启动/codec 基线
-docs/                         契约、功能矩阵、环境和验收证据
-plans/fast-image-editing/      方案与任务队列
-reference/                    忽略的只读上游参考，不参与构建
-target/                       忽略的构建产物
-```
-
-未来操作扩展 `operation`，沿用现有 `pipeline` 与 `project` 核心。PNG/JPEG 只用于输入/导出，不能作为浮点工作状态的无损检查点。详细边界见 [执行与版本契约](docs/foundation-contract.md)，当前与未来能力见 [功能矩阵](docs/capability-matrix.md)。
-
-## 校验
+[当前性能报告](docs/performance.md) 保留 16 场景前后各 30 次 release 数据、1080p/4K、图层与工程重放/检查点/旧步骤修改、峰值 RSS 和逐像素核对。4K 调整 p95 为 1171.49 ms，未达到方案建议的 1 秒；没有 Photoshop/libvips 对照或跨平台时延承诺。[任务 01 小图历史基线](docs/baseline.md) 保留早期数据，不代表当前全部功能、性能或测试总数。
 
 ```sh
 cargo fmt --all -- --check
@@ -122,9 +68,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --release
 git diff --check
-PIC_CLI_BIN="$PWD/target/release/pic-cli" cargo test -p pic-cli --test cli
-PIC_CLI_BIN="$PWD/target/release/pic-cli" cargo test -p pic-cli --test project
-cargo run --release -p pic-cli --example foundation_baseline -- "$PWD/target/release/pic-cli"
+python3 scripts/package.py
 ```
 
-测试与早期小图基线在临时目录自生成素材、管线及输出。端到端性能脚本将大图素材、工程和二进制保留在忽略的 `target/performance/`，逐次机器可读数据与分析登记在 `docs/performance/`；性能回归默认报告差异，不设置共享 CI 的硬耗时门槛。验收范围、测试对应关系见 [基础验收记录](docs/foundation-validation.md)。
+核心、管线、Document 与 Project 共用执行/渲染逻辑，位于 `crates/pic-core/`；CLI 解析和真实进程测试位于 `crates/pic-cli/`。`examples/` 保存可编辑 JSON，`scripts/` 提供打包和性能复跑入口，`target/` 为忽略的生成物；只读 `reference/` 不参与构建或验收。扩展操作应沿用统一核心，不增加平行状态源。
