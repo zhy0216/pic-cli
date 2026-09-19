@@ -34,7 +34,7 @@ pub struct OperationCapability {
 
 #[derive(Debug, Serialize)]
 pub struct Capabilities {
-    pub commands: [&'static str; 18],
+    pub commands: [&'static str; 25],
     pub result_schema_version: u32,
     pub pipeline_schema_version: u32,
     pub pixel_semantics: &'static str,
@@ -67,6 +67,13 @@ pub fn capabilities() -> Capabilities {
             "invert",
             "blur",
             "sharpen",
+            "project create",
+            "project apply",
+            "project inspect",
+            "project export",
+            "project preview",
+            "project undo",
+            "project redo",
         ],
         result_schema_version: RESULT_SCHEMA_VERSION,
         pipeline_schema_version: PIPELINE_SCHEMA_VERSION,
@@ -143,9 +150,9 @@ pub fn capabilities() -> Capabilities {
             },
             Capability {
                 id: "project_history_preview",
-                status: NotImplemented,
-                scope: "planned",
-                details: "Persistent assets/ops, revisions, replay, checkpoints, undo/redo and step previews.",
+                status: Partial,
+                scope: "current",
+                details: "Self-contained .pic assets and immutable normalized ops; SHA-256 integrity/dedup, atomic manifest publication, cross-process writer lock and required expected_revision. Group undo/redo, any committed step inspect/export/full-resolution preview, continuation from old steps with retained read-only history. Full RGBA32F replay via the same pipeline. Checkpoints, scaled/region previews and templates remain planned. Linux validated.",
             },
             Capability {
                 id: "smart_editing",

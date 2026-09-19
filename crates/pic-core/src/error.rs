@@ -23,6 +23,13 @@ pub enum ErrorCode {
     OutputExists,
     AlphaNotSupported,
     ResourceLimit,
+    InvalidProject,
+    AssetMissing,
+    IntegrityMismatch,
+    UnsafePath,
+    RevisionNotFound,
+    RevisionConflict,
+    HistoryBoundary,
 }
 
 #[derive(Debug, Clone, Serialize)]

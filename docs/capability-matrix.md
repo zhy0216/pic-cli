@@ -1,6 +1,6 @@
 # 功能与兼容性矩阵
 
-当前版本覆盖任务 01 基础核心、任务 02 几何/编解码与任务 03 调色/滤镜。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
+当前版本覆盖任务 01 基础核心、任务 02 几何/编解码、任务 03 调色/滤镜与任务 04 工程历史。`capabilities --json` 的 `status` 只有 `supported`（已支持）、`partial`（明确子集）、`not_implemented`（未实现）；`scope` 区分当前实现 `current`、后续直接编辑任务 `planned`、本轮范围外的未来项 `roadmap`。未来项不会出现在可执行 `operations` 清单里。
 
 ## 三类功能目标
 
@@ -10,7 +10,7 @@
 | 图层与合成 | 图层、位置/变换、混合模式、蒙版/选区、分组、文字、调整层 | not_implemented | 后续直接编辑任务继续实现 |
 | 智能编辑 | 智能抠图、主体分割、智能修复、生成填充/扩图 | not_implemented，roadmap | 仅未来可做，不选型、不接模型、不要求 LLM 参与 |
 
-源素材 + 不可变 ops 的工程历史、跨进程续编、检查点、逻辑步骤预览服务于前两类目标；本版只预留类型/契约，全部执行能力仍为 not_implemented。
+源素材 + 不可变 ops 的工程历史、跨进程续编和全尺寸步骤预览已实现，服务于前两类目标；检查点、区域/缩放预览与模板仍待后续实现。
 
 ## 当前精确能力
 
@@ -27,7 +27,8 @@
 | crop / resize / rotate / flip / canvas | supported | 单命令与 JSON 共用核心；nearest/bilinear、顺时针 ±360°、扩展/固定旋转画布、九个画布锚点；详见 [参数契约](geometry-codecs.md) |
 | adjust / levels / curves / grayscale / invert / blur / sharpen | supported | EV、亮度、对比度、饱和度、色阶、有序折线曲线、灰度、反相、高斯模糊及 unsharp；线性 RGBA32F，CLI/JSON 同核心，详见 [调色与滤镜契约](adjustments-filters.md) |
 | 图层、蒙版、分组、文字、调整层 | not_implemented | 仅后续目标，无假图层状态 |
-| project / revision / replay / checkpoint / preview | not_implemented | 仅 document 类型和未来提交契约，无持久化格式读写承诺 |
+| project / revision / replay / undo / redo | supported | 自包含素材、SHA-256 去重与完整性校验、不可变 ops、整组原子提交、expected_revision 冲突控制、任意已提交步骤完整重放与续编；Linux 验证，详见 [工程契约](project-history.md) |
+| preview / checkpoint / template | partial | 已有只读全尺寸步骤预览；检查点、区域/缩放预览、坐标映射和操作模板待任务 05 |
 | 智能能力 | not_implemented / roadmap | 无后端、模型依赖、凭据或网络请求 |
 
 ## 与 Photoshop 等工具的对齐维度

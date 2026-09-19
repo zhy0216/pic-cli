@@ -1,6 +1,4 @@
-//! In-memory pixel state and version/identity contracts for future persistent documents.
-//!
-//! No manifest, history, checkpoint, or project I/O is implemented here yet.
+//! Shared pixel state and identities. Persistent assets and ops live in `project`.
 
 use std::sync::Arc;
 

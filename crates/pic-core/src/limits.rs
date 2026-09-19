@@ -13,6 +13,10 @@ pub struct ResourceLimits {
     pub max_buffer_bytes: u64,
     pub max_pipeline_bytes: u64,
     pub max_operations: usize,
+    /// Total manifest plus committed operation bytes, excluding encoded assets.
+    pub max_project_bytes: u64,
+    /// Includes inactive, still traceable history.
+    pub max_history_operations: usize,
 }
 
 impl Default for ResourceLimits {
@@ -24,6 +28,8 @@ impl Default for ResourceLimits {
             max_buffer_bytes: 1024 * 1024 * 1024,
             max_pipeline_bytes: 1024 * 1024,
             max_operations: 10_000,
+            max_project_bytes: 64 * 1024 * 1024,
+            max_history_operations: 100_000,
         }
     }
 }

@@ -152,8 +152,25 @@ pub fn load(
         let bytes = read_limited(&path, limits.max_input_bytes)?;
         Ok((path, bytes))
     })?;
+    load_bytes(&bytes, path, limits, diagnostics)
+}
+
+/// Decode the exact bytes already read and verified by the project asset store.
+/// The path is diagnostic provenance only; it is never reopened here.
+pub fn load_bytes(
+    bytes: &[u8],
+    path: PathBuf,
+    limits: &ResourceLimits,
+    diagnostics: &mut Diagnostics,
+) -> Result<LoadedImage> {
+    if bytes.len() as u64 > limits.max_input_bytes {
+        return Err(PicError::new(
+            ErrorCode::ResourceLimit,
+            "image exceeds byte limit",
+        ));
+    }
     let loaded = timed(&mut diagnostics.timings.decode_ms, || {
-        decode(&bytes, path, limits)
+        decode(bytes, path, limits)
     })?;
     if loaded.info.color_source == "assumed_srgb" {
         diagnostics.warnings.push(Warning { code: "assumed_srgb", message: "Untagged input is interpreted as sRGB; no color profile conversion is performed." });

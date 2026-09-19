@@ -1,6 +1,6 @@
 # 基础执行与版本契约
 
-本文件定义任务 01 建立、任务 02/03 扩展的基础边界与后续实现需要遵守的接口。几何与编解码的详细参数见 [任务 02 契约](geometry-codecs.md)，调色与滤镜见 [任务 03 契约](adjustments-filters.md)。预留工程契约不代表已具备工程功能。智能能力处于未来 roadmap，本轮没有模型选择、模型后端或 LLM 调用。
+本文件定义任务 01 建立、任务 02/03 扩展的基础边界与后续实现需要遵守的接口。几何与编解码的详细参数见 [任务 02 契约](geometry-codecs.md)，调色与滤镜见 [任务 03 契约](adjustments-filters.md)。任务 04 已实现持久化工程，具体格式与提交规则见 [工程契约](project-history.md)。智能能力处于未来 roadmap，本轮没有模型选择、模型后端或 LLM 调用。
 
 ## 输入、输出与色彩
 
@@ -101,11 +101,13 @@ CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返
 
 上例省略具体 `data` 内容，耗时仅示意。成功的 `error=null`，失败的 `data=null` 且 `error={"code":"...","message":"..."}`。调用方按 code 分支，message 不作为稳定解析接口。代码包括 `invalid_argument`、`invalid_json`、`unsupported_version`、`unknown_operation`、`invalid_target`、`file_not_found`、`io_error`、`unsupported_format`、`unsupported_color`、`unsupported_metadata`、`decode_failed`、`encode_failed`、`output_exists`、`alpha_not_supported`、`resource_limit`。退出码为 0/1/2（成功/执行错误/CLI 解析错误）。
 
-耗时是单调时钟的毫秒浮点数，失败阶段也计时；未运行的阶段为 0。validation 包含管线读取/解析和输出校验；read 只含图像读取；decode 包含准入和转换为工作像素；process 包含有序操作；encode 包含导出量化和压缩；write 包含创建临时文件、写入、flush、发布、关闭。total 从 main 入口开始，到结果序列化前结束，含 CLI 解析和未分类开销；不包含进程启动、stdout 序列化/写入及退出，因此性能基准另测父进程端到端 wall time。阶段和不是进程总时延，库调用方负责设置 total。
+耗时是单调时钟的毫秒浮点数，失败阶段也计时；未运行的阶段为 0。以下阶段归属仅描述 stateless 文件处理：validation 包含管线读取/解析和输出校验；read 只含图像读取；decode 包含准入和转换为工作像素；process 包含有序操作；encode 包含导出量化和压缩；write 包含创建临时文件、写入、flush、发布、关闭。工程模式沿用相同字段，其实际归属见 [工程模式计时](project-history.md#工程模式计时)。
 
-## 后续工程契约（只预留，不实现）
+total 从 main 入口开始，到结果序列化前结束，含 CLI 解析、工程写锁等待和未分类开销；不包含进程启动、stdout 序列化/写入及退出，因此性能基准另测父进程端到端 wall time。各阶段之和不等同于 total 或进程总时延，库调用方负责设置 total。
 
-`DOCUMENT_SCHEMA_VERSION=1`、`RevisionId` 和 `TargetId` 目前只是类型/契约，不能据此创建或打开工程。未来模块需要区分：
+## 工程契约
+
+`DOCUMENT_SCHEMA_VERSION=1`、`RevisionId` 和 `TargetId` 由 `project` 持久化模块沿用，区分：
 
 | 标识 | 责任 |
 | --- | --- |
@@ -117,6 +119,6 @@ CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返
 
 源素材、不可变 ops 及必要结果资产是权威状态。提交记录包含输入/输出 revision、稳定目标、明确参数和资产引用；失败请求、查询与预览不进入编辑序列。检查点和预览属于可丢弃的派生数据，不能成为另一份可独立修改的权威文档。跨进程恢复必须只依赖持久化素材和记录。
 
-未来一组提交先校验并执行、写资产/不可变记录，最后原子发布 manifest 并比较 expected_revision；并发冲突不得相互覆盖。每个组内逻辑步骤都保留观察边界，任意步骤预览要返回 revision、步骤/目标 ID、画布/裁剪/预览尺寸及坐标映射。从旧步骤继续产生新记录，不改写原记录。预览、导出及重放沿用相同 operation/pipeline 像素语义；本任务未提前实现历史、回放执行器、撤销、检查点或预览命令。
+一组提交先校验并执行、写资产/不可变记录，最后在跨进程写锁内原子发布 manifest 并比较 expected_revision；并发冲突不得相互覆盖。每个组内逻辑步骤都保留观察边界。从旧步骤继续产生新记录，不改写原记录。预览、导出及重放沿用相同 operation/pipeline 像素语义。任务 04 的全尺寸预览返回 revision、op/目标 ID 与尺寸；检查点、区域/缩放和坐标映射留给任务 05。完整格式、历史与资源预算见 [工程契约](project-history.md)。
 
 实现参考：本地 gimpish 的结构/稳定图层 ID、AgentBrush 的统一结果、Compositor 的不可变像素共享。实际后端行为以锁定的 [image ImageDecoder 接口](https://docs.rs/image/0.25.10/image/trait.ImageDecoder.html) 和 [tempfile 发布接口](https://docs.rs/tempfile/3.27.0/tempfile/struct.NamedTempFile.html)及本仓库测试为准，未复制上游指令或采用第二套图像后端。

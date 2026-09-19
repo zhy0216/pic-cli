@@ -27,6 +27,8 @@ use pic_core::{
 };
 use serde::Serialize;
 
+mod project;
+
 #[derive(Parser)]
 #[command(
     version,
@@ -43,6 +45,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Self-contained .pic projects, immutable ops, revisions and undo/redo
+    Project {
+        #[command(subcommand)]
+        command: project::ProjectCommand,
+    },
     /// Show the executable version
     Version,
     /// Report supported, partial and unimplemented capabilities
@@ -204,6 +211,12 @@ enum Command {
 struct ImageArgs {
     #[arg(long)]
     input: PathBuf,
+    #[command(flatten)]
+    output: OutputArgs,
+}
+
+#[derive(Args)]
+struct OutputArgs {
     #[arg(long)]
     output: PathBuf,
     /// Output format: png or jpeg (jpg); defaults to the output extension
@@ -223,6 +236,17 @@ struct ImageArgs {
     overwrite: bool,
 }
 
+impl OutputArgs {
+    fn encoding(&self) -> EncodeOptions {
+        EncodeOptions {
+            format: self.format,
+            jpeg_quality: self.jpeg_quality,
+            png_compression: self.png_compression,
+            jpeg_background: self.jpeg_background,
+        }
+    }
+}
+
 #[derive(Serialize)]
 #[serde(untagged)]
 enum Data {
@@ -231,11 +255,15 @@ enum Data {
     Capabilities(Box<Capabilities>),
     Info(ImageInfo),
     Run(RunResult),
+    ProjectChange(Box<pic_core::project::ProjectChange>),
+    ProjectInspection(Box<pic_core::project::ProjectInspection>),
+    ProjectExport(Box<pic_core::project::ProjectExport>),
 }
 
 impl Command {
     fn name(&self) -> &'static str {
         match self {
+            Self::Project { command } => command.name(),
             Self::Version => "version",
             Self::Capabilities => "capabilities",
             Self::Info { .. } => "info",
@@ -259,6 +287,7 @@ impl Command {
     fn execute(self, diagnostics: &mut Diagnostics) -> Result<Data> {
         let limits = ResourceLimits::default();
         match self {
+            Self::Project { command } => command.execute(&limits, diagnostics),
             Self::Version => Ok(Data::Version {
                 version: env!("CARGO_PKG_VERSION"),
             }),
@@ -448,15 +477,10 @@ fn execute_image(
     pipeline::run(
         RunRequest {
             input: &image.input,
-            output: &image.output,
+            output: &image.output.output,
             pipeline: &pipeline,
-            encoding: EncodeOptions {
-                format: image.format,
-                jpeg_quality: image.jpeg_quality,
-                png_compression: image.png_compression,
-                jpeg_background: image.jpeg_background,
-            },
-            overwrite: image.overwrite,
+            encoding: image.output.encoding(),
+            overwrite: image.output.overwrite,
         },
         limits,
         diagnostics,
