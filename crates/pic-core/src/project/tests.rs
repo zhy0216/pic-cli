@@ -1,5 +1,6 @@
 use super::*;
 
+mod layers;
 mod replay;
 use crate::operation::{
     Operation, OperationSpec,

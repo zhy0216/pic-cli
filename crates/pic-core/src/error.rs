@@ -13,6 +13,8 @@ pub enum ErrorCode {
     UnsupportedVersion,
     UnknownOperation,
     InvalidTarget,
+    InvalidMask,
+    UnsupportedTemplate,
     FileNotFound,
     IoError,
     UnsupportedFormat,

@@ -113,14 +113,21 @@ impl OperationTemplate {
                     "template slots must use canvas and ordered step_N parameters",
                 ));
             }
-            // Validate even the suggestions so unknown/content-dependent ops cannot hide there.
-            OperationSpec {
+            // Reject new resource/state operations on import too, including crafted templates.
+            if !(OperationSpec {
                 op: step.op.clone(),
                 op_version: step.op_version,
                 target: TargetId::canvas(),
                 params: step.suggested_params.clone(),
+            })
+            .validate()?
+            .template_safe()
+            {
+                return Err(PicError::new(
+                    ErrorCode::UnsupportedTemplate,
+                    "template operation requires layer/asset/selection rebinding support",
+                ));
             }
-            .validate()?;
             let params = bindings
                 .params
                 .get(&slot)
@@ -161,24 +168,18 @@ impl Project {
             // Those operations need an explicit asset/coordinate rebinding policy before export.
             if !step.result_assets.is_empty() || step.input_assets != [self.manifest.source.clone()]
             {
-                return Err(invalid(
+                return Err(PicError::new(
+                    ErrorCode::UnsupportedTemplate,
                     "asset-dependent operations require explicit rebinding support before template export",
                 ));
             }
-            match step.operation.validate()? {
-                crate::operation::Operation::Identity
-                | crate::operation::Operation::Crop(_)
-                | crate::operation::Operation::Resize(_)
-                | crate::operation::Operation::Rotate(_)
-                | crate::operation::Operation::Flip(_)
-                | crate::operation::Operation::Canvas(_)
-                | crate::operation::Operation::Adjust(_)
-                | crate::operation::Operation::Levels(_)
-                | crate::operation::Operation::Curves(_)
-                | crate::operation::Operation::Grayscale
-                | crate::operation::Operation::Invert
-                | crate::operation::Operation::Blur(_)
-                | crate::operation::Operation::Sharpen(_) => (),
+            if step.operation.target != TargetId::canvas()
+                || !step.operation.validate()?.template_safe()
+            {
+                return Err(PicError::new(
+                    ErrorCode::UnsupportedTemplate,
+                    "layers, masks, selections and composite require explicit rebinding support before template export",
+                ));
             }
             operations.push(TemplateStep {
                 op: step.operation.op.clone(),

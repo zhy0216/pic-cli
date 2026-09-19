@@ -44,16 +44,26 @@ pub struct CoordinateMapping {
     pub convention: &'static str,
     pub preview_to_canvas: AffineMapping,
     pub canvas_to_preview: AffineMapping,
+    pub layer_to_canvas: Option<crate::composite::Affine>,
+    pub canvas_to_layer: Option<crate::composite::Affine>,
+    pub preview_to_layer: Option<crate::composite::Affine>,
+    pub layer_to_preview: Option<crate::composite::Affine>,
 }
 
 impl CoordinateMapping {
-    fn new(region: &CropParams, size: ImageSize) -> Self {
+    fn new(region: &CropParams, size: ImageSize, layer: Option<crate::composite::Affine>) -> Self {
         let scale = [
             f64::from(region.width) / f64::from(size.width),
             f64::from(region.height) / f64::from(size.height),
         ];
         let offset = [f64::from(region.x), f64::from(region.y)];
+        let preview =
+            crate::composite::Affine([scale[0], 0.0, 0.0, scale[1], offset[0], offset[1]]);
         Self {
+            layer_to_canvas: layer,
+            canvas_to_layer: layer.map(|m| m.inverse()),
+            preview_to_layer: layer.map(|m| m.inverse().then(preview)),
+            layer_to_preview: layer.map(|m| preview.inverse().then(m)),
             convention: "pixel_edges; centers=(index+0.5); x_right_y_down",
             preview_to_canvas: AffineMapping { scale, offset },
             canvas_to_preview: AffineMapping {
@@ -115,12 +125,6 @@ impl Project {
         diagnostics: &mut Diagnostics,
     ) -> Result<ProjectPreview> {
         let (output, encoding) = timed(&mut diagnostics.timings.validation_ms, || {
-            if request.target != TargetId::canvas() {
-                return Err(PicError::new(
-                    ErrorCode::InvalidTarget,
-                    "preview currently supports target 'canvas'",
-                ));
-            }
             if let Some(region) = &request.region {
                 region.validate()?;
             }
@@ -150,9 +154,11 @@ impl Project {
         let hit = self
             .cache_get(DerivedKind::Preview, &key, diagnostics)
             .filter(|(value, _)| {
-                request
-                    .geometry(value.canvas)
-                    .is_ok_and(|(_, size)| size == ImageSize::of(&value.raster))
+                value.document.is_none()
+                    && value.layer_to_canvas.is_some() == (request.target != TargetId::canvas())
+                    && request
+                        .geometry(value.canvas)
+                        .is_ok_and(|(_, size)| size == ImageSize::of(&value.raster))
             });
         let (value, replay) = if let Some((value, tier)) = hit {
             (
@@ -171,6 +177,16 @@ impl Project {
         } else {
             let restored = self.restore(Some(revision), diagnostics)?;
             let canvas = ImageSize::of(&restored.raster);
+            let layer_to_canvas = restored.document.target_mapping(&request.target)?;
+            let target_raster = if request.target == TargetId::canvas() {
+                restored.raster
+            } else {
+                timed(&mut diagnostics.timings.process_ms, || {
+                    restored
+                        .document
+                        .render_for_preview(&request.target, &self.limits)
+                })?
+            };
             let (region, size) = request.geometry(canvas)?;
             self.limits.check_dimensions(size.width, size.height)?;
             let raster = timed(&mut diagnostics.timings.process_ms, || {
@@ -182,7 +198,7 @@ impl Project {
                 {
                     operations.push(Operation::Crop(region).to_spec());
                 }
-                if size != ImageSize::of(&restored.raster) || !operations.is_empty() {
+                if size != ImageSize::of(&target_raster) || !operations.is_empty() {
                     operations.push(
                         Operation::Resize(ResizeParams {
                             width: Some(size.width),
@@ -193,7 +209,7 @@ impl Project {
                     );
                 }
                 // Same execution core as edit/export; temporary observation ops never enter history.
-                Pipeline::new(
+                let raster = Pipeline::new(
                     PipelineSpec {
                         schema_version: PIPELINE_SCHEMA_VERSION,
                         operations,
@@ -201,10 +217,20 @@ impl Project {
                     self.path(),
                     &self.limits,
                 )?
-                .execute(restored.raster)
-                .map(|execution| execution.raster)
+                .execute(target_raster)?
+                .raster;
+                if request.target.0.starts_with("mask:") {
+                    crate::composite::visualize_coverage(&raster, &self.limits)
+                } else {
+                    Ok(raster)
+                }
             })?;
-            let value = CachedRaster { raster, canvas };
+            let value = CachedRaster {
+                raster,
+                canvas,
+                document: None,
+                layer_to_canvas,
+            };
             self.cache_put(DerivedKind::Preview, &key, value.clone(), diagnostics);
             (value, restored.replay)
         };
@@ -242,7 +268,7 @@ impl Project {
                 jpeg_background: encoding.jpeg_background,
             },
             canvas: value.canvas,
-            coordinates: CoordinateMapping::new(&region, size),
+            coordinates: CoordinateMapping::new(&region, size, value.layer_to_canvas),
             region,
             preview_size: size,
             filter: request.filter,

@@ -2,7 +2,7 @@
 
 面向 AI agent 的 Rust 图像编辑 CLI。调用方提供明确的操作和参数；本轮产品目标是普通像素编辑、图层合成、文字，以及基于源素材和不可变 ops 的工程历史与预览，不需要 LLM 或模型参与。智能抠图、分割、修复、生成填充/扩图仅列为未来 roadmap。
 
-当前 **0.1.0** 已实现 PNG/JPEG 信息查询、EXIF 方向归一化、编解码参数、几何编辑，以及曝光 EV、亮度、对比度、饱和度、色阶、曲线、灰度、反相、高斯模糊和锐化的单命令与有序 JSON 管线。支持自包含 `.pic` 工程、不可变 ops、跨进程撤销/重做、精确浮点检查点、任意已提交步骤的区域/缩放预览与坐标映射、旧步骤参数修改和显式绑定的操作模板。图层和文字待后续任务实现。请以 `capabilities` 为机器可读的实际支持列表。
+当前 **0.1.0** 已实现 PNG/JPEG 信息查询、EXIF 方向归一化、编解码参数、几何编辑，以及曝光 EV、亮度、对比度、饱和度、色阶、曲线、灰度、反相、高斯模糊和锐化的单命令与有序 JSON 管线。支持自包含 `.pic` 工程、不可变 ops、跨进程撤销/重做、精确浮点检查点、任意已提交步骤的区域/缩放预览与坐标映射、旧步骤参数修改和显式绑定的操作模板。已支持稳定 ID 图层、无损变换、四种线性光混合模式、外部 coverage 蒙版、显式坐标选区及独立图层／蒙版预览；分组、文字和调整层待后续任务。请以 `capabilities` 为机器可读的实际支持列表。
 
 ## 构建与使用
 
@@ -74,6 +74,19 @@ pic-cli project cache-clear work.pic --json
 
 `project checkpoint` 按需保存完整浮点状态，`project preview` 自动缓存指定观察规格，两者共用磁盘/内存预算；清除或损坏缓存后从有效前缀或源素材恢复。返回 `replay` 命中类型、复用步骤数和实际重算 revision；预览另含画布、区域、输出尺寸及双向坐标映射。修改旧步骤用 `project revise --step-revision rN --params '{...}' --expect-revision rCurrent`，旧版本保持可读。模板导出与换图运行用 `project template-export` / `project template-run`，要求新输入、目标和每步参数全部显式绑定。格式、预算、完整示例和验收见 [重放与预览契约](docs/replay-preview.md)。
 
+## 图层与蒙版
+
+```sh
+pic-cli composite --input background.png --overlay subject.png --mask mask.png --x 24 --y 16 --opacity 0.8 --blend screen --output composite.png --json
+pic-cli project layer add work.pic --id subject --source subject.png --expect-revision r0 --json
+pic-cli project mask set work.pic --target subject --source mask.png --expect-revision r1 --json
+pic-cli project layer transform work.pic --target subject --x 24 --y 16 --degrees 15 --expect-revision r2 --json
+pic-cli project preview work.pic --target subject --output layer.png --json
+pic-cli project preview work.pic --target mask:subject --output coverage.png --json
+```
+
+使用实际返回的 revision。图层重排、显隐、opacity、blend、选区及本地像素编辑都沿用同一不可变 ops 提交入口。灰度蒙版按编码值 coverage 解读，128 表示约 50.2% 覆盖率。多层检查点保存各层及蒙版的完整浮点状态，移动工程后仍独立可编辑。旧单 canvas 工程无需迁移；进入多层后 canvas 仅接受 identity、无损裁切和透明画布调整，其他像素操作须指定图层 ID。新图层／蒙版／选区操作的换图模板暂明确拒绝。参数、坐标、采样限制及验收见 [图层与蒙版契约](docs/layers-masks.md)。
+
 ## 工程布局
 
 ```text
@@ -82,7 +95,7 @@ crates/pic-core/src/
   codec.rs, codec/             格式准入、读写、像素转换、原子发布
   operation.rs, operation/    操作规格、参数校验、几何/调色/滤镜与统一执行接口
   pipeline.rs                 有序执行、资源解析、文件处理入口
-  document.rs                 浮点像素状态、稳定目标与版本契约
+  document.rs, composite.rs   完整可编辑状态、稳定图层、蒙版、选区、变换与线性光合成
   project.rs, project/         自包含素材、不可变 ops、组历史、检查点、预览、模板与原子存储
   limits.rs                   资源准入限制
   result.rs, error.rs          版本化结果、错误、警告、阶段计时

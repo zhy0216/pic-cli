@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 pub mod adjustments;
 pub mod geometry;
+pub mod layers;
+use layers::{CompositeParams, LayerOperation};
 
 use adjustments::{AdjustParams, BlurParams, CurvesParams, LevelsParams, SharpenParams};
 use geometry::{CanvasParams, CropParams, FlipParams, ResizeParams, RotateParams};
@@ -50,6 +52,16 @@ impl OperationSpec {
             "invert",
             "blur",
             "sharpen",
+            "composite",
+            "layer_add",
+            "layer_set",
+            "layer_transform",
+            "layer_reorder",
+            "layer_remove",
+            "mask_set",
+            "mask_remove",
+            "selection_set",
+            "selection_clear",
         ]
         .contains(&self.op.as_str())
         {
@@ -68,13 +80,32 @@ impl OperationSpec {
             ));
         }
         if self.target != TargetId::canvas() {
+            layers::valid_id(&self.target)?;
+        }
+        let canvas_only = matches!(
+            self.op.as_str(),
+            "layer_add" | "selection_set" | "selection_clear"
+        );
+        let layer_only = matches!(
+            self.op.as_str(),
+            "layer_set"
+                | "layer_transform"
+                | "layer_reorder"
+                | "layer_remove"
+                | "mask_set"
+                | "mask_remove"
+        );
+        if (canvas_only && self.target != TargetId::canvas())
+            || (layer_only && self.target == TargetId::canvas())
+        {
             return Err(PicError::new(
                 ErrorCode::InvalidTarget,
-                "stateless operations require stable target 'canvas'",
+                "operation requires an explicit canvas or layer target",
             ));
         }
         let operation = match self.op.as_str() {
-            "identity" | "grayscale" | "invert" => {
+            "identity" | "grayscale" | "invert" | "layer_remove" | "mask_remove"
+            | "selection_clear" => {
                 if !self
                     .params
                     .as_object()
@@ -86,10 +117,45 @@ impl OperationSpec {
                     ));
                 }
                 match self.op.as_str() {
+                    "layer_remove" => Operation::Layer(LayerOperation::Remove),
+                    "mask_remove" => Operation::Layer(LayerOperation::MaskRemove),
+                    "selection_clear" => Operation::Layer(LayerOperation::SelectionClear),
                     "grayscale" => Operation::Grayscale,
                     "invert" => Operation::Invert,
                     _ => Operation::Identity,
                 }
+            }
+            "composite" => {
+                if !self
+                    .params
+                    .get("transform")
+                    .is_some_and(serde_json::Value::is_object)
+                {
+                    return Err(PicError::new(
+                        ErrorCode::InvalidArgument,
+                        "composite transform must be a named object",
+                    ));
+                }
+                Operation::Composite(self.parameters()?)
+            }
+            "layer_add" => Operation::Layer(LayerOperation::Add(self.parameters()?)),
+            "layer_set" => Operation::Layer(LayerOperation::Set(self.parameters()?)),
+            "layer_transform" => Operation::Layer(LayerOperation::Transform(self.parameters()?)),
+            "layer_reorder" => Operation::Layer(LayerOperation::Reorder(self.parameters()?)),
+            "mask_set" => Operation::Layer(LayerOperation::MaskSet(self.parameters()?)),
+            "selection_set" => {
+                if !self
+                    .params
+                    .get("regions")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|regions| regions.iter().all(serde_json::Value::is_object))
+                {
+                    return Err(PicError::new(
+                        ErrorCode::InvalidArgument,
+                        "selection regions must be named rectangle objects",
+                    ));
+                }
+                Operation::Layer(LayerOperation::SelectionSet(self.parameters()?))
             }
             "crop" => Operation::Crop(self.parameters()?),
             "resize" => Operation::Resize(self.parameters()?),
@@ -105,6 +171,12 @@ impl OperationSpec {
         };
         operation.validate()?;
         Ok(operation)
+    }
+
+    pub fn normalized(&self) -> Result<Self> {
+        let mut spec = self.validate()?.to_spec();
+        spec.target = self.target.clone();
+        Ok(spec)
     }
 
     fn parameters<T: serde::de::DeserializeOwned>(&self) -> Result<T> {
@@ -128,6 +200,8 @@ impl OperationSpec {
 /// Validated executable operations. Future commands must use this same dispatcher.
 #[derive(Debug, Clone)]
 pub enum Operation {
+    Composite(CompositeParams),
+    Layer(LayerOperation),
     Identity,
     Crop(CropParams),
     Resize(ResizeParams),
@@ -147,6 +221,8 @@ impl Operation {
     /// Explicit, serializable parameters for CLI authoring and future immutable ops.
     pub fn to_spec(&self) -> OperationSpec {
         let (op, params) = match self {
+            Self::Composite(p) => ("composite", serde_json::json!(p)),
+            Self::Layer(p) => p.specification(),
             Self::Identity => ("identity", serde_json::json!({})),
             Self::Crop(p) => ("crop", serde_json::json!(p)),
             Self::Resize(p) => ("resize", serde_json::json!(p)),
@@ -171,6 +247,8 @@ impl Operation {
 
     pub fn validate(&self) -> Result<()> {
         match self {
+            Self::Composite(p) => p.validate(),
+            Self::Layer(p) => p.validate(),
             Self::Identity | Self::Flip(_) | Self::Grayscale | Self::Invert => Ok(()),
             Self::Crop(p) => p.validate(),
             Self::Resize(p) => p.validate(),
@@ -184,7 +262,39 @@ impl Operation {
         }
     }
 
-    /// One logical operation boundary, with no codec, quantization, or file publication.
+    pub fn sources(&self) -> Vec<&str> {
+        match self {
+            Self::Composite(p) => std::iter::once(p.source.as_str())
+                .chain(p.mask.as_deref())
+                .collect(),
+            Self::Layer(LayerOperation::Add(p)) => vec![&p.source],
+            Self::Layer(LayerOperation::MaskSet(p)) => vec![&p.source],
+            _ => Vec::new(),
+        }
+    }
+
+    pub(crate) fn bind_sources(
+        &mut self,
+        mut bind: impl FnMut(&str) -> Result<String>,
+    ) -> Result<()> {
+        match self {
+            Self::Composite(p) => {
+                p.source = bind(&p.source)?;
+                p.mask = p.mask.as_deref().map(bind).transpose()?;
+            }
+            Self::Layer(LayerOperation::Add(p)) => p.source = bind(&p.source)?,
+            Self::Layer(LayerOperation::MaskSet(p)) => p.source = bind(&p.source)?,
+            _ => (),
+        }
+        Ok(())
+    }
+
+    pub fn template_safe(&self) -> bool {
+        !matches!(self, Self::Composite(_) | Self::Layer(_))
+    }
+
+    /// One logical raster operation; external operands may decode, but no intermediate
+    /// quantization or file publication occurs.
     pub fn apply(&self, raster: &mut Raster, resources: &ResourceResolver) -> Result<()> {
         self.apply_with_limits(raster, resources, &ResourceLimits::default())
     }
@@ -198,6 +308,24 @@ impl Operation {
         self.validate()?;
         limits.check_dimensions(raster.width(), raster.height())?;
         let result = match self {
+            Self::Composite(_) => {
+                let mut document = crate::document::Document::from_raster(raster.clone());
+                document.apply(
+                    &TargetId::canvas(),
+                    self,
+                    _resources,
+                    limits,
+                    &mut |source, mask| _resources.load(source, mask, limits),
+                )?;
+                *raster = document.render(&TargetId::canvas(), limits)?;
+                return Ok(());
+            }
+            Self::Layer(_) => {
+                return Err(PicError::new(
+                    ErrorCode::InvalidTarget,
+                    "layer operations require Document execution",
+                ));
+            }
             Self::Identity => return Ok(()),
             Self::Crop(p) => geometry::crop(raster, p, limits)?,
             Self::Resize(p) => geometry::resize(raster, p, limits)?,

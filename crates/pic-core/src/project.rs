@@ -1,9 +1,11 @@
 //! Self-contained source assets and immutable semantic ops. No raster snapshot is authoritative.
 //! Readers use one manifest snapshot; writers hold the stable `.lock` through publication.
 
+mod assets;
 mod cache;
 mod history;
 mod preview;
+mod snapshot;
 mod storage;
 mod template;
 
@@ -17,7 +19,10 @@ use serde::Serialize;
 use crate::{
     ErrorCode, PicError, Result,
     codec::{self, EncodeOptions},
-    document::{DOCUMENT_SCHEMA_VERSION, PIXEL_SEMANTICS, Raster, RevisionId, TargetId},
+    document::{
+        DOCUMENT_SCHEMA_VERSION, Document, DocumentInfo, PIXEL_SEMANTICS, Raster, RevisionId,
+        TargetId,
+    },
     limits::{ResourceLimits, read_limited},
     pipeline::{PIPELINE_SCHEMA_VERSION, Pipeline, PipelineSpec},
     result::{Diagnostics, Warning, timed},
@@ -42,6 +47,7 @@ pub struct Project {
 }
 
 pub struct RestoredRevision {
+    pub document: Document,
     pub revision: RevisionId,
     pub raster: Raster,
     pub operations_replayed: usize,
@@ -64,6 +70,7 @@ pub struct ProjectChange {
 
 #[derive(Debug, Serialize)]
 pub struct ProjectInspection {
+    pub document: DocumentInfo,
     pub project: PathBuf,
     pub revision: RevisionId,
     pub current_revision: RevisionId,
@@ -248,12 +255,27 @@ impl Project {
         let keys = self.prefix_keys(&steps)?;
         let mut replay = ReplayReport::default();
         let mut cached = None;
+        // Shape is part of a valid checkpoint: a layered prefix can never resume from a flat image.
+        let mut layered_prefix = vec![false];
+        for step in &steps {
+            layered_prefix.push(
+                *layered_prefix.last().expect("initial state")
+                    || step.operation.target != TargetId::canvas()
+                    || matches!(
+                        step.operation.validate()?,
+                        crate::operation::Operation::Layer(_)
+                    ),
+            );
+        }
         for index in (0..keys.len()).rev() {
             if let Some((value, tier)) =
                 self.cache_get(storage::DerivedKind::Checkpoint, &keys[index], diagnostics)
             {
                 // A checkpoint must retain the complete canvas, never a preview region.
-                if value.canvas != ImageSize::of(&value.raster) {
+                if value.canvas != ImageSize::of(&value.raster)
+                    || value.document.is_some() != layered_prefix[index]
+                    || value.layer_to_canvas.is_some()
+                {
                     continue;
                 }
                 replay.reused_steps = index;
@@ -267,13 +289,17 @@ impl Project {
                         steps[index - 1].revision.clone()
                     },
                 });
-                cached = Some(value.raster);
+                cached = Some(
+                    value
+                        .document
+                        .unwrap_or_else(|| Document::from_raster(value.raster)),
+                );
                 break;
             }
         }
         let input = match cached {
-            Some(raster) => raster,
-            None => {
+            Some(document) => document,
+            None => Document::from_raster(
                 codec::load_bytes(
                     &bytes,
                     self.path()
@@ -282,11 +308,11 @@ impl Project {
                     &self.limits,
                     diagnostics,
                 )?
-                .raster
-            }
+                .raster,
+            ),
         };
-        let raster = timed(&mut diagnostics.timings.process_ms, || {
-            let mut raster = input;
+        let document = timed(&mut diagnostics.timings.process_ms, || {
+            let mut document = input;
             for chunk in steps[replay.reused_steps..].chunks(self.limits.max_operations.max(1)) {
                 let pipeline = Pipeline::new(
                     PipelineSpec {
@@ -296,14 +322,22 @@ impl Project {
                     self.path(),
                     &self.limits,
                 )?;
-                raster = pipeline.execute(raster)?.raster;
+                document = pipeline
+                    .execute_document(document, &self.limits, &mut |source, mask| {
+                        self.load_operand(source, mask, &self.limits)
+                    })?
+                    .document;
                 replay
                     .recomputed_revisions
                     .extend(chunk.iter().map(|step| step.revision.clone()));
             }
-            Ok(raster)
+            Ok(document)
+        })?;
+        let raster = timed(&mut diagnostics.timings.process_ms, || {
+            document.render(&TargetId::canvas(), &self.limits)
         })?;
         Ok(RestoredRevision {
+            document,
             revision: RevisionId(revision.into()),
             raster,
             operations_replayed: replay.recomputed_revisions.len(),
@@ -319,6 +353,7 @@ impl Project {
         let restored = self.restore(revision, diagnostics)?;
         let step = self.history.step(&restored.revision.0);
         Ok(ProjectInspection {
+            document: restored.document.info(),
             project: self.path().to_owned(),
             current_revision: self.manifest.current_revision.clone(),
             target: TargetId::canvas(),
@@ -404,8 +439,12 @@ impl Project {
     ) -> Result<ProjectChange> {
         let project = self;
         let limits = &self.limits;
+        let execution_limits = pipeline.effective_limits(limits);
+        let (pipeline, dependencies) = self.bind_pipeline(pipeline, diagnostics)?;
         let execution = timed(&mut diagnostics.timings.process_ms, || {
-            pipeline.execute_with_limits(restored.raster, limits)
+            pipeline.execute_document(restored.document, limits, &mut |source, mask| {
+                self.load_operand(source, mask, &execution_limits)
+            })
         })?;
         if execution.steps.is_empty() {
             return Err(PicError::new(
@@ -442,7 +481,7 @@ impl Project {
                         target: step.target,
                         params: step.params,
                     },
-                    input_assets: vec![project.manifest.source.clone()],
+                    input_assets: dependencies[index].clone(),
                     result_assets: Vec::new(),
                 };
                 base = revision;

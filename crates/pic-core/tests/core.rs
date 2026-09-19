@@ -172,7 +172,7 @@ fn strict_pipeline_validation_rejects_versions_unknown_ops_and_parameters() {
             ErrorCode::UnsupportedVersion,
         ),
         (
-            r#"{"schema_version":1,"operations":[{"op":"identity","op_version":1,"target":"layer-0","params":{}}]}"#,
+            r#"{"schema_version":1,"operations":[{"op":"identity","op_version":1,"target":"invalid layer ID","params":{}}]}"#,
             ErrorCode::InvalidTarget,
         ),
         (

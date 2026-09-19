@@ -27,13 +27,14 @@ use pic_core::{
 };
 use serde::Serialize;
 
+mod layers;
 mod project;
 
 #[derive(Parser)]
 #[command(
     version,
     about = "Explicit image processing for agents",
-    long_about = "Explicit image processing for agents. PNG/JPEG codecs, geometry, color adjustments and Gaussian filters in linear sRGB. Ordered RGBA32F operations; quantization only at export. Coordinates use the current canvas after EXIF normalization. Query capabilities for equations, ranges and alpha behavior."
+    long_about = "Explicit image processing for agents. PNG/JPEG codecs, geometry, color adjustments, filters and editable layers/masks in linear sRGB. Stable IDs, explicit selections and immutable project history. Ordered RGBA32F operations; quantization only at export. Coordinates use the current canvas after EXIF normalization. Query capabilities for equations, ranges and alpha behavior."
 )]
 struct Cli {
     /// Emit one compact, versioned JSON result (including errors/help/version)
@@ -68,6 +69,21 @@ enum Command {
     },
     /// Decode and re-encode via the same core as a one-step identity pipeline
     Identity(ImageArgs),
+    /// Composite an external image using the same linear-light renderer as project layers
+    Composite {
+        #[command(flatten)]
+        image: ImageArgs,
+        #[arg(long)]
+        overlay: PathBuf,
+        #[arg(long)]
+        mask: Option<PathBuf>,
+        #[arg(long, default_value_t = 1.0)]
+        opacity: f64,
+        #[arg(long, default_value = "normal")]
+        blend: pic_core::composite::BlendMode,
+        #[command(flatten)]
+        transform: layers::TransformArgs,
+    },
     /// Extract an in-bounds rectangle; origin top-left, x right, y down
     Crop {
         #[command(flatten)]
@@ -275,6 +291,7 @@ impl Command {
             Self::Info { .. } => "info",
             Self::Run { .. } => "run",
             Self::Identity(_) => "identity",
+            Self::Composite { .. } => "composite",
             Self::Crop { .. } => "crop",
             Self::Resize { .. } => "resize",
             Self::Rotate { .. } => "rotate",
@@ -305,6 +322,25 @@ impl Command {
                 })?;
                 execute_image(image, pipeline, &limits, diagnostics)
             }
+            Self::Composite {
+                image,
+                overlay,
+                mask,
+                opacity,
+                blend,
+                transform,
+            } => execute_operation(
+                image,
+                Operation::Composite(pic_core::operation::layers::CompositeParams {
+                    source: layers::path_string(overlay)?,
+                    mask: mask.map(layers::path_string).transpose()?,
+                    opacity,
+                    blend,
+                    transform: transform.parameters(),
+                }),
+                &limits,
+                diagnostics,
+            ),
             Self::Identity(image) => {
                 execute_operation(image, Operation::Identity, &limits, diagnostics)
             }

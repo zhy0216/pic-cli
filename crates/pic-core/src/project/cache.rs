@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    document::{DOCUMENT_SCHEMA_VERSION, PIXEL_SEMANTICS, Raster, RevisionId},
+    document::{DOCUMENT_SCHEMA_VERSION, Document, PIXEL_SEMANTICS, Raster, RevisionId},
     result::{Diagnostics, Warning, timed},
 };
 
@@ -17,7 +17,8 @@ use super::{
 
 // Bump on any decoder, sampling, color, alpha or evaluation change affecting pixels.
 // Operation versions and explicit filter parameters are also included in each prefix.
-const RENDER_SEMANTICS: &str = "pic-render-v1:image-0.25.10:fir-5.5.0:geometry-v1:adjustments-v1";
+const RENDER_SEMANTICS: &str =
+    "pic-render-v1:image-0.25.10:fir-5.5.0:geometry-v1:adjustments-v1:layers-v1";
 const MAGIC: &[u8; 8] = b"PICFLT01";
 const OVERHEAD: u64 = 120; // magic + key + four dimensions + SHA-256
 
@@ -74,11 +75,18 @@ pub struct CacheClearResult {
 pub(super) struct CachedRaster {
     pub raster: Raster,
     pub canvas: ImageSize,
+    pub document: Option<Document>,
+    pub layer_to_canvas: Option<crate::composite::Affine>,
 }
 
 impl CachedRaster {
     fn memory_bytes(&self) -> u64 {
         self.raster.pixels().len() as u64 * 16
+            + self.document.as_ref().map_or(0, Document::memory_bytes)
+            + super::snapshot::metadata(self)
+                .ok()
+                .flatten()
+                .map_or(0, |bytes| bytes.len() as u64)
     }
 }
 
@@ -231,7 +239,12 @@ impl Project {
         diagnostics: &mut Diagnostics,
     ) -> (bool, bool) {
         let mut memory = self.memory.borrow_mut();
-        let size = value.memory_bytes() + OVERHEAD;
+        let metadata = super::snapshot::metadata(&value).ok().flatten();
+        let size = metadata
+            .as_ref()
+            .map_or(value.memory_bytes() + OVERHEAD, |meta| {
+                super::snapshot::size(&value, meta)
+            });
         let scratch = size.saturating_mul(2);
         let can_serialize = size <= self.limits.max_cache_disk_bytes
             && scratch <= self.limits.max_cache_memory_bytes
@@ -263,11 +276,14 @@ impl Project {
 
     fn decode_snapshot(&self, key: &str, bytes: &[u8]) -> Result<CachedRaster> {
         if bytes.len() < OVERHEAD as usize
-            || &bytes[..8] != MAGIC
+            || (&bytes[..8] != MAGIC && &bytes[..8] != super::snapshot::MAGIC)
             || &bytes[8..72] != key.as_bytes()
             || Sha256::digest(&bytes[..bytes.len() - 32]).as_slice() != &bytes[bytes.len() - 32..]
         {
             return Err(invalid("invalid derived snapshot header or checksum"));
+        }
+        if &bytes[..8] == super::snapshot::MAGIC {
+            return super::snapshot::decode(&bytes[..bytes.len() - 32], &self.limits);
         }
         let dimension = |offset| {
             u32::from_le_bytes(
@@ -302,6 +318,8 @@ impl Project {
         Ok(CachedRaster {
             raster: Raster::from_linear_rgba(width, height, pixels, &self.limits)?,
             canvas,
+            document: None,
+            layer_to_canvas: None,
         })
     }
 
@@ -321,6 +339,8 @@ impl Project {
             CachedRaster {
                 raster: restored.raster,
                 canvas,
+                document: restored.document.layered.then_some(restored.document),
+                layer_to_canvas: None,
             },
             diagnostics,
         );
@@ -356,6 +376,12 @@ pub(super) fn json_key(value: &impl Serialize) -> Result<String> {
 }
 
 fn encode_snapshot(key: &str, value: &CachedRaster) -> Vec<u8> {
+    if let Some(metadata) = super::snapshot::metadata(value).expect("validated finite metadata") {
+        let mut bytes = super::snapshot::encode(key, value, &metadata);
+        let checksum = Sha256::digest(&bytes);
+        bytes.extend_from_slice(&checksum);
+        return bytes;
+    }
     let mut bytes = Vec::with_capacity((value.memory_bytes() + OVERHEAD) as usize);
     bytes.extend_from_slice(MAGIC);
     bytes.extend_from_slice(key.as_bytes());
@@ -403,6 +429,8 @@ mod tests {
         ];
         let value = CachedRaster {
             raster: Raster::from_linear_rgba(2, 1, samples.clone(), &limits).unwrap(),
+            document: None,
+            layer_to_canvas: None,
             canvas: ImageSize {
                 width: 2,
                 height: 1,

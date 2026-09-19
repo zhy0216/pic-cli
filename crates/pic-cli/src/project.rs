@@ -17,6 +17,21 @@ use crate::{Data, OutputArgs};
 
 #[derive(Subcommand)]
 pub(super) enum ProjectCommand {
+    /// Edit independent layers using stable IDs; all mutations require expected revision
+    Layer {
+        #[command(subcommand)]
+        command: crate::layers::LayerCommand,
+    },
+    /// Attach or remove an external grayscale coverage mask on a stable layer
+    Mask {
+        #[command(subcommand)]
+        command: crate::layers::MaskCommand,
+    },
+    /// Set or clear a rectangular union used by subsequent layer pixel edits
+    Selection {
+        #[command(subcommand)]
+        command: crate::layers::SelectionCommand,
+    },
     /// Import original PNG/JPEG bytes into a new .pic directory; starts at r0
     Create {
         #[arg(long)]
@@ -116,6 +131,7 @@ impl CacheArgs {
 pub(super) struct PreviewArgs {
     #[command(flatten)]
     render: RenderArgs,
+    /// canvas, a stable layer ID, or mask:<layer ID>; output always uses canvas coordinates
     #[arg(long, default_value = "canvas")]
     target: String,
     /// Half-open canvas rectangle x,y,width,height at the selected revision
@@ -168,6 +184,9 @@ pub(super) struct CursorArgs {
 impl ProjectCommand {
     pub fn name(&self) -> &'static str {
         match self {
+            Self::Layer { .. } => "project layer",
+            Self::Mask { .. } => "project mask",
+            Self::Selection { .. } => "project selection",
             Self::Create { .. } => "project create",
             Self::Apply { .. } => "project apply",
             Self::Inspect { .. } => "project inspect",
@@ -185,6 +204,9 @@ impl ProjectCommand {
 
     pub fn execute(self, limits: &ResourceLimits, diagnostics: &mut Diagnostics) -> Result<Data> {
         match self {
+            Self::Layer { command } => command.execute(limits, diagnostics),
+            Self::Mask { command } => command.execute(limits, diagnostics),
+            Self::Selection { command } => command.execute(limits, diagnostics),
             Self::Create { input, output } => Project::create(&input, &output, limits, diagnostics)
                 .map(|value| Data::ProjectChange(Box::new(value))),
             Self::Apply {

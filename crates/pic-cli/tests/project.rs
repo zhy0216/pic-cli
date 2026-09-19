@@ -7,6 +7,8 @@ use std::{
 use image::{Rgba, RgbaImage};
 use serde_json::{Value, json};
 
+#[path = "project/layers.rs"]
+mod layers;
 #[path = "project/replay.rs"]
 mod replay;
 

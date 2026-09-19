@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     ErrorCode, PicError, Result,
     codec::{self, EncodeOptions, ImageInfo},
-    document::{Raster, TargetId},
+    document::{Document, Raster, TargetId},
     limits::{ResourceLimits, read_limited},
     operation::{Operation, OperationSpec},
     result::{Diagnostics, timed},
@@ -23,7 +23,7 @@ pub struct PipelineSpec {
     pub operations: Vec<OperationSpec>,
 }
 
-/// Resolve future resource operands relative to the canonical pipeline file's directory.
+/// Resolve external resource operands relative to the canonical pipeline file's directory.
 /// CLI input/output paths are deliberately not resolved through this object.
 #[derive(Debug, Clone)]
 pub struct ResourceResolver {
@@ -47,6 +47,22 @@ impl ResourceResolver {
             ));
         }
         Ok(Self { base_dir })
+    }
+
+    pub fn load(&self, source: &str, mask: bool, limits: &ResourceLimits) -> Result<Raster> {
+        if source.starts_with("asset:") {
+            return Err(PicError::new(
+                ErrorCode::InvalidArgument,
+                "asset references require a project asset store",
+            ));
+        }
+        let path = self.resolve(Path::new(source))?;
+        let bytes = read_limited(&path, limits.max_input_bytes)?;
+        if mask {
+            codec::load_mask_bytes(&bytes, path, limits)
+        } else {
+            Ok(codec::load_bytes(&bytes, path, limits, &mut Diagnostics::default())?.raster)
+        }
     }
 
     pub fn base_dir(&self) -> &Path {
@@ -85,6 +101,7 @@ pub struct ExecutedStep {
 #[derive(Debug)]
 pub struct Execution {
     pub raster: Raster,
+    pub document: Document,
     pub steps: Vec<ExecutedStep>,
 }
 
@@ -153,7 +170,7 @@ impl Pipeline {
                     error.message = format!("operations[{index}]: {}", error.message);
                     error
                 })?;
-                Ok((operation.to_spec(), operation))
+                Ok((spec.normalized()?, operation))
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
@@ -167,16 +184,44 @@ impl Pipeline {
         &self.resources
     }
 
-    /// Retains every logical step boundary and never changes pixel representation.
+    pub fn specs(&self) -> impl Iterator<Item = &OperationSpec> {
+        self.steps.iter().map(|(spec, _)| spec)
+    }
+
+    /// Every path evaluates the same Document; one-shot output is its rendered canvas.
     pub fn execute(&self, raster: Raster) -> Result<Execution> {
         self.execute_with_limits(raster, &self.limits)
     }
 
-    /// Additional caller limits also apply; a pipeline cannot relax its construction limits.
     pub fn execute_with_limits(
         &self,
-        mut raster: Raster,
+        raster: Raster,
         limits: &ResourceLimits,
+    ) -> Result<Execution> {
+        let limits = self.effective_limits(limits);
+        self.execute_document(
+            Document::from_raster(raster),
+            &limits,
+            &mut |source, mask| self.resources.load(source, mask, &limits),
+        )
+    }
+
+    pub(crate) fn effective_limits(&self, limits: &ResourceLimits) -> ResourceLimits {
+        ResourceLimits {
+            max_dimension: limits.max_dimension.min(self.limits.max_dimension),
+            max_pixels: limits.max_pixels.min(self.limits.max_pixels),
+            max_input_bytes: limits.max_input_bytes.min(self.limits.max_input_bytes),
+            max_operations: limits.max_operations.min(self.limits.max_operations),
+            max_buffer_bytes: limits.max_buffer_bytes.min(self.limits.max_buffer_bytes),
+            ..limits.clone()
+        }
+    }
+
+    pub(crate) fn execute_document(
+        &self,
+        mut document: Document,
+        limits: &ResourceLimits,
+        load: &mut impl FnMut(&str, bool) -> Result<Raster>,
     ) -> Result<Execution> {
         if self.steps.len() > limits.max_operations {
             return Err(PicError::new(
@@ -184,17 +229,12 @@ impl Pipeline {
                 "pipeline exceeds operation limit",
             ));
         }
-        let limits = ResourceLimits {
-            max_dimension: limits.max_dimension.min(self.limits.max_dimension),
-            max_pixels: limits.max_pixels.min(self.limits.max_pixels),
-            max_buffer_bytes: limits.max_buffer_bytes.min(self.limits.max_buffer_bytes),
-            ..limits.clone()
-        };
-        limits.check_dimensions(raster.width(), raster.height())?;
+        let limits = self.effective_limits(limits);
+        document.validate(&limits)?;
         let mut steps = Vec::with_capacity(self.steps.len());
         for (index, (spec, operation)) in self.steps.iter().enumerate() {
-            operation
-                .apply_with_limits(&mut raster, &self.resources, &limits)
+            document
+                .apply(&spec.target, operation, &self.resources, &limits, load)
                 .map_err(|mut error| {
                     error.message = format!("operations[{index}]: {}", error.message);
                     error
@@ -207,7 +247,12 @@ impl Pipeline {
                 params: spec.params.clone(),
             });
         }
-        Ok(Execution { raster, steps })
+        let raster = document.render(&TargetId::canvas(), &limits)?;
+        Ok(Execution {
+            raster,
+            document,
+            steps,
+        })
     }
 }
 

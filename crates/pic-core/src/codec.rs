@@ -170,7 +170,7 @@ pub fn load_bytes(
         ));
     }
     let loaded = timed(&mut diagnostics.timings.decode_ms, || {
-        decode(bytes, path, limits)
+        decode(bytes, path, limits, false)
     })?;
     if loaded.info.color_source == "assumed_srgb" {
         diagnostics.warnings.push(Warning { code: "assumed_srgb", message: "Untagged input is interpreted as sRGB; no color profile conversion is performed." });
@@ -181,7 +181,23 @@ pub fn load_bytes(
     Ok(loaded)
 }
 
-fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<LoadedImage> {
+/// External masks use encoded grayscale coverage, never sRGB-decoded luminance.
+pub fn load_mask_bytes(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<Raster> {
+    if bytes.len() as u64 > limits.max_input_bytes {
+        return Err(PicError::new(
+            ErrorCode::ResourceLimit,
+            "mask exceeds byte limit",
+        ));
+    }
+    Ok(decode(bytes, path, limits, true)?.raster)
+}
+
+fn decode(
+    bytes: &[u8],
+    path: PathBuf,
+    limits: &ResourceLimits,
+    coverage: bool,
+) -> Result<LoadedImage> {
     #[cfg(test)]
     tests::DECODE_CALLS.with(|calls| calls.set(calls.get() + 1));
     let image_format = image::guess_format(bytes).map_err(|_| {
@@ -236,13 +252,28 @@ fn decode(bytes: &[u8], path: PathBuf, limits: &ResourceLimits) -> Result<Loaded
     pixels
         .try_reserve_exact(count)
         .map_err(|_| PicError::new(ErrorCode::ResourceLimit, "cannot allocate working pixels"))?;
+    if coverage && decoded.pixels().any(|p| p[0] != p[1] || p[1] != p[2]) {
+        return Err(PicError::new(
+            ErrorCode::InvalidMask,
+            "mask must contain grayscale coverage (R=G=B), optionally multiplied by alpha",
+        ));
+    }
     pixels.extend(decoded.pixels().map(|p| {
-        [
-            srgb_to_linear(p[0]),
-            srgb_to_linear(p[1]),
-            srgb_to_linear(p[2]),
-            f32::from(p[3]) / 255.0,
-        ]
+        if coverage {
+            [
+                0.0,
+                0.0,
+                0.0,
+                (f64::from(p[0]) * f64::from(p[3]) / (255.0 * 255.0)) as f32,
+            ]
+        } else {
+            [
+                srgb_to_linear(p[0]),
+                srgb_to_linear(p[1]),
+                srgb_to_linear(p[2]),
+                f32::from(p[3]) / 255.0,
+            ]
+        }
     }));
     let raster = Raster::from_linear_rgba(width, height, pixels, limits)?;
     let info = ImageInfo {

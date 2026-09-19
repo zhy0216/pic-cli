@@ -169,13 +169,24 @@ impl History {
                 {
                     return Err(invalid("invalid operation identity or revision chain"));
                 }
-                if step.input_assets != [manifest.source.clone()] || !step.result_assets.is_empty()
-                {
-                    return Err(invalid(
-                        "single-image operations must depend on the source asset and have no result assets",
-                    ));
+                if !step.result_assets.is_empty() {
+                    return Err(invalid("direct operations must have no result assets"));
                 }
-                let normalized = step.operation.validate()?.to_spec();
+                super::assets::validate_dependencies(
+                    &step.operation,
+                    &step.input_assets,
+                    &manifest.source,
+                )?;
+                for asset in &step.input_assets {
+                    storage::check_hash(&asset.sha256)?;
+                    if asset.bytes > limits.max_input_bytes {
+                        return Err(PicError::new(
+                            ErrorCode::ResourceLimit,
+                            "operation asset exceeds byte limit",
+                        ));
+                    }
+                }
+                let normalized = step.operation.normalized()?;
                 if serde_json::to_value(&normalized).map_err(|e| invalid(e.to_string()))?
                     != serde_json::to_value(&step.operation).map_err(|e| invalid(e.to_string()))?
                 {

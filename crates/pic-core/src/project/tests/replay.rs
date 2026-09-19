@@ -11,7 +11,7 @@ fn adjustment(exposure: f64, brightness: f64) -> OperationSpec {
     .to_spec()
 }
 
-fn exact(a: &Raster, b: &Raster) {
+pub(super) fn exact(a: &Raster, b: &Raster) {
     assert_eq!((a.width(), a.height()), (b.width(), b.height()));
     assert_eq!(a.pixels().len(), b.pixels().len());
     for (a, b) in a.pixels().iter().zip(b.pixels()) {

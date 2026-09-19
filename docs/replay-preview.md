@@ -1,6 +1,6 @@
 # 重放、精确检查点、预览与模板
 
-任务 05 扩展既有单画布工程。源资产和不可变 ops 仍是唯一权威状态；读取、续编、修改参数、预览和导出共用原有 Pipeline / Operation / Raster。新增派生缓存不进入 manifest，也不改变 revision、整组撤销或 expected_revision 规则。图层、蒙版、文字和模型操作尚未实现。
+任务 05 扩展既有单画布工程。源资产和不可变 ops 仍是唯一权威状态；读取、续编、修改参数、预览和导出共用原有 Pipeline / Operation / Raster。新增派生缓存不进入 manifest，也不改变 revision、整组撤销或 expected_revision 规则。任务 06 在同一路径新增图层、蒙版、选区及完整状态检查点，详见 [图层契约](layers-masks.md)；文字和模型操作尚未实现。
 
 ## 按需检查点与安全恢复
 
@@ -16,11 +16,11 @@ checkpoint 缺省选当前 revision，也可选 r0、组内步骤或已退出活
 
 恢复流程先校验 manifest/不可变 ops，再读取并核对必需资产的 SHA-256 与长度。即使命中进程内或磁盘缓存也必须验证资产，不能用缓存掩盖原图缺失、内容变化或未知操作版本。从选中步骤向前查找最近的有效完整检查点，然后通过统一管线执行剩余逻辑步骤；没有有效检查点时重新解码原始资产并完整重放。旧任务 04 工程无需迁移，缺少派生目录等同缓存未命中。
 
-缓存键是规范化 JSON 的 SHA-256。起点包含源资产摘要/长度、工程结构版本、当前引擎版本、渲染/decoder/采样版本、线性 sRGB RGBA32F straight-alpha 语义和 OS/架构；每一步将上一前缀键、规范化 operation（含 op_version、稳定目标、所有参数及采样选项）、全部输入/结果依赖的摘要与长度继续哈希。当前操作的唯一资产依赖是源图。操作或依赖扩展必须沿用这些字段，渲染行为改变必须升级相应语义标识。revision/op/group 编号不作为内容身份，语义相同的前缀可以共享缓存。
+缓存键是规范化 JSON 的 SHA-256。起点包含源资产摘要/长度、工程结构版本、当前引擎版本、渲染/decoder/采样版本、线性 sRGB RGBA32F straight-alpha 语义和 OS/架构；每一步将上一前缀键、规范化 operation（含 op_version、稳定目标、所有参数及采样选项）、全部输入/结果依赖的摘要与长度继续哈希。无外部资源的 canvas 操作只直接引用源图；图层／蒙版操作显式记录新增资产，全部祖先依赖均参与验证。操作或依赖扩展必须沿用这些字段，渲染行为改变必须升级相应语义标识。revision/op/group 编号不作为内容身份，语义相同的前缀可以共享缓存。
 
 完整检查点保存于 `checkpoints/<key>.bin`；预览缓存保存于 `cache/<key>.bin`。两者目录、键空间和读取入口独立。预览键还包含目标、区域、请求宽高和滤镜；缺省项有显式 null，JSON 字段顺序不影响键。预览缓存保留浮点观察结果，所以 PNG/JPEG 编码选项无需进入其身份，每次输出仍用请求的 codec 参数重新编码。
 
-快照 v1 是 little-endian 二进制：8 字节 `PICFLT01`、64 字节 ASCII 身份摘要、画布宽高及栅格宽高（四个 u32）、逐像素 RGBA 四个 f32 原始字节，最后附 32 字节 SHA-256 校验和，覆盖此前所有字节。总长度为 `120 + 16 × 像素数`。恢复核对身份、版本、长度、校验和、尺寸/内存准入、样本有限性和 alpha 范围。负值、HDR、透明像素隐藏颜色、signed zero 和 subnormal 位模式均保留；没有 PNG/JPEG 中间量化。当前单画布检查点须覆盖完整画布，未来多图层状态需要扩展快照格式，不能复用扁平预览替代。
+快照 v1 是 little-endian 二进制：8 字节 `PICFLT01`、64 字节 ASCII 身份摘要、画布宽高及栅格宽高（四个 u32）、逐像素 RGBA 四个 f32 原始字节，最后附 32 字节 SHA-256 校验和，覆盖此前所有字节。总长度为 `120 + 16 × 像素数`。恢复核对身份、版本、长度、校验和、尺寸/内存准入、样本有限性和 alpha 范围。负值、HDR、透明像素隐藏颜色、signed zero 和 subnormal 位模式均保留；没有 PNG/JPEG 中间量化。单画布检查点须覆盖完整画布；多层状态采用 PICDOC02 保存独立图层、蒙版和完整元数据，多层前缀拒绝扁平快照，格式见 [图层契约](layers-masks.md)。
 
 缺失、截断、错误身份、未知快照版本、损坏或超预算的派生数据均安全回退。源资产/ops 的错误仍明确失败。缓存写失败不改变已发布历史，返回 `cache_write_skipped` 警告；显式 checkpoint 返回 `disk_stored` 和 `memory_stored`，调用方不能把预算导致的 false 当作已保存。
 
@@ -57,7 +57,7 @@ pic-cli project preview work.pic --revision r1 --target canvas --region 100,80,6
 pic-cli project apply work.pic --pipeline followup.json --revision r1 --expect-revision rCurrent --json
 ```
 
-region 是该 revision 画布上的 `x,y,width,height`，半开矩形必须完整位于画布内。缺省为整图，尺寸均为正整数。width/height 都省略时按区域原尺寸输出；只给一个时沿用 resize 的保持宽高比、四舍五入语义；给两个时精确指定输出尺寸。filter 支持 nearest/bilinear，默认 bilinear。裁剪和采样通过同一操作核心执行，预览的临时变换不进入历史。当前唯一目标是 canvas，未知目标明确拒绝。
+region 是该 revision 画布上的 `x,y,width,height`，半开矩形必须完整位于画布内。缺省为整图，尺寸均为正整数。width/height 都省略时按区域原尺寸输出；只给一个时沿用 resize 的保持宽高比、四舍五入语义；给两个时精确指定输出尺寸。filter 支持 nearest/bilinear，默认 bilinear。裁剪和采样通过同一操作核心执行，预览的临时变换不进入历史。目标支持 canvas、图层 ID 及 mask:<layer ID>；所有 region 仍使用画布坐标，另返回完整局部仿射映射，未知目标明确拒绝。
 
 JSON 保留既有 output、revision、op_id、target、width/height、format 等字段，增加 canvas、region、preview_size、filter 和 coordinates。例如画布 800×600，region=(100,80,640,480)，preview_size=320×240：
 
@@ -115,7 +115,7 @@ template-export 从选中 revision 的祖先路径生成 schema_version=1 的线
 
 新输入、目标及**每一步完整参数**全部必填，包括 crop 坐标、resize 尺寸、filter 和空参数对象。未知、多余或缺失的绑定、旧 revision 字段均拒绝；不能只替换输入然后默认沿用旧坐标。输入路径相对于 bindings 文件的规范化父目录，模板路径和输出路径相对于 cwd。无需原工程存在。
 
-当前配方仅支持无外部素材的直接单画布操作，源图通过 input 槽重新绑定。外部蒙版、内容选区、字体或模型结果尚无模板绑定规则，未知操作/参数与资产/结果引用都明确拒绝；以后增加这些操作时必须扩展显式素材/坐标绑定契约，不能静默复制旧内容输出。本轮不执行任何模型。
+当前配方仅支持无外部素材的直接单画布操作，源图通过 input 槽重新绑定。新增图层／蒙版／选区／composite，以及非 canvas 像素操作尚无模板绑定规则，导入导出以 unsupported_template 明确拒绝；未知操作/参数仍按原错误拒绝，后续支持须扩展显式素材/坐标绑定契约，不能静默复制旧内容输出。本轮不执行任何模型。
 
 运行总是创建一个不存在的新 .pic 工程，在临时目录调用同一 create/apply 核心，完整成功后一次发布。几何无效等失败不留下半个目的工程；不能覆盖现有工程。结果 revision 是新项目内的编号，可能同样叫 r1/r2，但身份应按 (project, revision) 解释，没有继承旧项目的历史或缓存。空配方只创建 r0。
 
@@ -134,6 +134,6 @@ template-export 从选中 revision 的祖先路径生成 schema_version=1 的线
 | 零字节清理、并发预算 | clear_removes_zero_length_and_truncated_managed_files_only；concurrent_checkpoint_publishers_share_disk_budget_and_clear_zero_length_entries；核对 assets/ops/manifest 保留 |
 | 显式模板绑定、新历史与失败原子性 | templates_require_explicit_rebinding_and_create_atomic_independent_history；删除原工程后换图，与直接管线核对输出，缺绑定/旧 revision/内容结果拒绝 |
 
-沿用既有毫秒字段：缓存键/路径选择及记录构造的未单独计时开销进入 total_ms；源资产验证、快照读入与解包计入 read_ms；需要时的源图解码计入 decode_ms；重放、新操作、预览区域/采样计入 process_ms；最终输出编码计入 encode_ms；快照序列化、缓存锁等待/淘汰/发布与普通输出发布计入 write_ms。内存命中无需快照 I/O。库调用累加阶段时间，CLI 设置 total_ms；本任务验收正确性和重算步数，没有宣称大图性能门槛。
+沿用既有毫秒字段：缓存键/路径选择及记录构造的未单独计时开销进入 total_ms；源资产验证、快照读入与解包计入 read_ms；需要时的源图解码计入 decode_ms；重放、新操作、完整 Document 合成、图层／蒙版渲染及预览区域/采样计入 process_ms；最终输出编码计入 encode_ms；快照序列化、缓存锁等待/淘汰/发布与普通输出发布计入 write_ms。内存命中无需快照 I/O。库调用累加阶段时间，CLI 设置 total_ms；本任务验收正确性和重算步数，没有宣称大图性能门槛。
 
 本任务完成时，README 中的 fmt、clippy、workspace tests（90 项）、release build、git diff check 全部通过；另以 release 二进制运行 cli 与 project 集成测试（40 项）通过。Linux/POSIX 存储、无 fsync 保证及 codec 输入子集边界保持不变。

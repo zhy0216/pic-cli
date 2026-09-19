@@ -24,31 +24,31 @@
 
 `document::Raster` 存储行优先 `[f32; 4]` RGBA，每像素 16 字节；语义标识固定为 `linear_srgb_rgba32f_straight_v1`。RGB 使用线性光 sRGB，alpha 为 straight/unassociated（未预乘）的覆盖率。导入时 sRGB 的 8-bit RGB 经标准分段传递函数转为线性值，alpha 除以 255；灰度复制到 RGB。
 
-RGB 可保留有限的负值和大于 1 的值，不在步骤间裁切或量化。alpha 必须有限且在 `[0,1]`；NaN/Inf 拒绝。`Raster` 的像素不可从公共接口直接修改，克隆共享 `Arc<Vec<[f32;4]>>`；操作构造新的有效 Raster 时须继续检查尺寸与资源限制。identity 和空管线保持全部 f32 位模式及共享存储。任务 02 的 bilinear 缩放/旋转在临时预乘表示下采样，然后转回 straight alpha；RGB 不在步骤间裁切。裁剪、翻转、整数正交旋转和 nearest 缩放精确保留被复制样本的位模式。任务 03 的调色使用标量 f64 计算后存储 f32，保持 alpha 位模式；高斯模糊以预乘 f64 过滤 RGB/alpha，锐化保留原 alpha，明确的恒等参数共享原样本。合成尚未实现，后续也必须显式遵守 alpha 约定。
+RGB 可保留有限的负值和大于 1 的值，不在步骤间裁切或量化。alpha 必须有限且在 `[0,1]`；NaN/Inf 拒绝。`Raster` 的像素不可从公共接口直接修改，克隆共享 `Arc<Vec<[f32;4]>>`；操作构造新的有效 Raster 时须继续检查尺寸与资源限制。identity 和空管线保持全部 f32 位模式及共享存储。任务 02 的 bilinear 缩放/旋转在临时预乘表示下采样，然后转回 straight alpha；RGB 不在步骤间裁切。裁剪、翻转、整数正交旋转和 nearest 缩放精确保留被复制样本的位模式。任务 03 的调色使用标量 f64 计算后存储 f32，保持 alpha 位模式；高斯模糊以预乘 f64 过滤 RGB/alpha，锐化保留原 alpha，明确的恒等参数共享原样本。图层合成使用同一线性光、预乘采样与 straight-alpha 存储约定，详见 [图层契约](layers-masks.md)。
 
 只在最终输出时将 RGB 裁切到 `[0,1]`、转换回非线性 sRGB 并四舍五入为 8-bit；alpha 同样四舍五入。覆盖全部 256 级通道值的 PNG 往返测试要求解码 RGBA 完全相同，含透明像素的隐藏 RGB。
 
-检查点必须保留原始 f32 位模式、通道顺序、宽高、色彩语义及 alpha 模式。任务 05 已以版本化 little-endian IEEE-754 快照实现单画布检查点；格式、身份、预算和回退见 [重放与预览契约](replay-preview.md)。不能用 RGBA8 PNG、JPEG、缩略图替换工作像素，也不能仅保存扁平预览来恢复未来多图层状态。
+检查点必须保留原始 f32 位模式、通道顺序、宽高、色彩语义及 alpha 模式。任务 05 已以版本化 little-endian IEEE-754 快照实现单画布检查点；格式、身份、预算和回退见 [重放与预览契约](replay-preview.md)。不能用 RGBA8 PNG、JPEG、缩略图替换工作像素，也不能仅保存扁平预览来恢复多图层状态；PICDOC02 已保存完整可编辑层和蒙版。
 
 ## 操作、顺序与坐标
 
-`OperationSpec` 是请求规格，`validate` 得到可执行 `Operation`。支持 `identity/crop/resize/rotate/flip/canvas/adjust/levels/curves/grayscale/invert/blur/sharpen` v1；目标为 `canvas`，identity/grayscale/invert 参数为 `{}`。JSON 的版本、目标、采样、背景及调色/滤镜参数显式必填，resize 的宽高至少一个非 null；CLI 的默认值会补齐到返回的 `steps[].params`，未来 ops 可复用同一规格。未支持的操作、参数、版本、目标和未知字段都拒绝，不退化为空操作。
+`OperationSpec` 是请求规格，`validate` 得到可执行 `Operation`。支持 `identity/crop/resize/rotate/flip/canvas/adjust/levels/curves/grayscale/invert/blur/sharpen` v1；旧单画布目标为 `canvas`，也可显式指定稳定图层 ID 编辑本地像素；新增 composite/图层/蒙版/选区操作及多层 canvas 限制见 [图层契约](layers-masks.md)。identity/grayscale/invert 参数为 `{}`。JSON 的版本、目标、采样、背景及调色/滤镜参数显式必填，resize 的宽高至少一个非 null；CLI 的默认值会补齐到返回的 `steps[].params`，未来 ops 可复用同一规格。未支持的操作、参数、版本、目标和未知字段都拒绝，不退化为空操作。
 
-`PipelineSpec` 固定为 `{"schema_version":1,"operations":[...]}`。整个管线先解析和校验，再读取图片；数组顺序就是执行顺序。`Pipeline::execute` 对每一步调用 `Operation::apply_with_limits`，返回从 0 开始的逻辑步骤索引。所有单操作 CLI 用 `Pipeline::single` 创建一步管线，然后与 `run` 一起进入 `pipeline::run`。未进行步骤融合或重排；单次运行解码一次，结束编码一次，不生成中间有损图像。
+`PipelineSpec` 固定为 `{"schema_version":1,"operations":[...]}`。整个管线先解析和校验，再读取图片；数组顺序就是执行顺序。`Pipeline::execute` 经 `execute_document` 逐步调用 `Document::apply`，按稳定目标分派像素、合成、图层、蒙版及选区操作，返回从 0 开始的逻辑步骤索引。普通像素操作继续复用 `Operation::apply_with_limits`，最终由同一 Document 渲染画布。文件处理的单操作 CLI 用 `Pipeline::single` 创建一步管线，然后与 `run` 一起进入 `pipeline::run`；工程命令复用同一 Document 分派核心。未进行步骤融合或重排；主输入在单次文件处理中只解码一次，新增图层、蒙版及 composite 的外部素材按相应操作分别解码。最终输出编码一次，不生成中间有损图像。
 
-管线内未来的素材路径统一通过 `ResourceResolver` 解析：相对路径基于**规范化后管线文件的父目录**，而不是进程 cwd；管线符号链接以链接目标文件的目录为基准。绝对路径不变，允许 `..`，没有路径沙箱。`from_json` / `single` 的库调用显式提供资源目录；CLI 单操作默认 cwd。目前 identity/几何/调色/滤镜操作没有外部素材参数，该解析器已实现并测试，未来操作不得自行另定规则。
+管线内的素材路径统一通过 `ResourceResolver` 解析：相对路径基于**规范化后管线文件的父目录**，而不是进程 cwd；管线符号链接以链接目标文件的目录为基准。绝对路径不变，允许 `..`，没有路径沙箱。`from_json` / `single` 的库调用显式提供资源目录；CLI 单操作默认 cwd。identity/几何/调色/滤镜操作没有外部素材参数；新增 composite/layer_add/mask_set 使用此解析器，工程提交后绑定为内嵌资产。
 
 CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返回规范化输入、输出父目录和资源根目录；路径要求有效 UTF-8，避免发布成功后无法准确序列化路径。
 
-几何操作的统一坐标契约：原点在当前画布左上角，x 向右、y 向下，单位是像素；像素中心为 `(x+0.5,y+0.5)`，矩形采用左上含、右下不含的 `[x,x+w) × [y,y+h)`，宽高正整数。每步坐标基于前一步结果，不依赖最初画布尺寸。输入首先应用 EXIF 方向。图层局部坐标必须显式转换；当前几何只支持 canvas。
+几何操作的统一坐标契约：原点在当前画布左上角，x 向右、y 向下，单位是像素；像素中心为 `(x+0.5,y+0.5)`，矩形采用左上含、右下不含的 `[x,x+w) × [y,y+h)`，宽高正整数。每步坐标基于前一步结果，不依赖最初画布尺寸。输入首先应用 EXIF 方向。图层局部坐标通过明确 target 和返回的仿射矩阵转换。
 
-参数语义约定（opacity 留给后续合成任务，其余已实现）：
+参数语义约定（均已实现）：
 
 | 参数 | 单位/中性值 | 行为与约束 |
 | --- | --- | --- |
 | exposure | EV，0 不变 | 在线性 RGB 上乘 `2^EV`，有限 `[-20,20]` |
 | saturation | 倍率，1 不变、0 为灰度 | 有限 `[0,10]`；线性 Rec.709 亮度，不沿用 Photoshop 滑杆百分数 |
-| opacity | 覆盖率 `[0,1]`，1 不变 | 不使用 0–100 的模糊单位；需与像素 alpha 明确组合 |
+| opacity | 覆盖率 `[0,1]`，1 不变 | 已用于图层及 composite；乘已含蒙版 coverage 的采样 alpha，再参与线性光合成，不使用 0–100 的单位 |
 | rotation | 度，顺时针为正，`[-360,360]` | 画布中心旋转，nearest/bilinear，默认扩展边界；详见 [几何契约](geometry-codecs.md) |
 | blur | 像素单位 sigma，0 不变 | 有限 `[0,100]`，高斯核半径 ceil(3*sigma)，边缘夹取，临时预乘 alpha |
 | brightness / contrast | 加法偏移 0 / 倍率 1 | brightness `[-1,1]`，contrast `[0,10]` 绕线性值 0.5；不在步骤间裁切 |
@@ -101,7 +101,7 @@ CLI 的 `--input`、`--output`、`--pipeline` 路径都相对于 cwd。结果返
 
 上例省略具体 `data` 内容，耗时仅示意。成功的 `error=null`，失败的 `data=null` 且 `error={"code":"...","message":"..."}`。调用方按 code 分支，message 不作为稳定解析接口。代码包括 `invalid_argument`、`invalid_json`、`unsupported_version`、`unknown_operation`、`invalid_target`、`file_not_found`、`io_error`、`unsupported_format`、`unsupported_color`、`unsupported_metadata`、`decode_failed`、`encode_failed`、`output_exists`、`alpha_not_supported`、`resource_limit`。退出码为 0/1/2（成功/执行错误/CLI 解析错误）。
 
-耗时是单调时钟的毫秒浮点数，失败阶段也计时；未运行的阶段为 0。以下阶段归属仅描述 stateless 文件处理：validation 包含管线读取/解析和输出校验；read 只含图像读取；decode 包含准入和转换为工作像素；process 包含有序操作；encode 包含导出量化和压缩；write 包含创建临时文件、写入、flush、发布、关闭。工程模式沿用相同字段，其实际归属见 [工程模式计时](project-history.md#工程模式计时)。
+耗时是单调时钟的毫秒浮点数，失败阶段也计时；未运行的阶段为 0。以下阶段归属仅描述 stateless 文件处理：validation 包含管线读取/解析和输出校验；read 只含图像读取；decode 包含准入和转换为工作像素；process 包含有序操作和最终合成（操作内部外部图层／蒙版读取及解码也在此阶段）；encode 包含导出量化和压缩；write 包含创建临时文件、写入、flush、发布、关闭。工程模式沿用相同字段，其实际归属见 [工程模式计时](project-history.md#工程模式计时)。
 
 total 从 main 入口开始，到结果序列化前结束，含 CLI 解析、工程写锁等待和未分类开销；不包含进程启动、stdout 序列化/写入及退出，因此性能基准另测父进程端到端 wall time。各阶段之和不等同于 total 或进程总时延，库调用方负责设置 total。
 

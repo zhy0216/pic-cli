@@ -2,6 +2,7 @@
 
 pub mod capabilities;
 pub mod codec;
+pub mod composite;
 pub mod document;
 pub mod error;
 pub mod limits;

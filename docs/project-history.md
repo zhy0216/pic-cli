@@ -1,6 +1,6 @@
 # 自包含工程与持久化历史
 
-任务 04 实现单图 `.pic` 工程：保存原始素材和不可变语义 ops，通过原有 `Pipeline` / `Operation` 重放任意已提交步骤。RGBA32F 的负值、高亮、alpha 和逻辑边界与直接管线相同；只在最终导出/预览编码时量化。任务 05 在同一恢复入口增加可丢弃的精确检查点与预览缓存，没有第二份可编辑文档状态；新增命令、身份/预算与验收见 [重放与预览契约](replay-preview.md)。
+任务 04 实现单图 `.pic` 工程：保存原始素材和不可变语义 ops，通过原有 `Pipeline` / `Operation` 重放任意已提交步骤。RGBA32F 的负值、高亮、alpha 和逻辑边界与直接管线相同；只在最终导出/预览编码时量化。任务 05 在同一恢复入口增加可丢弃的精确检查点与预览缓存，没有第二份可编辑文档状态；新增命令、身份/预算与验收见 [重放与预览契约](replay-preview.md)。任务 06 沿用相同提交／恢复入口扩展完整 Document 图层、蒙版和选区，见 [图层契约](layers-masks.md)。
 
 ## 命令与并发约定
 
@@ -58,7 +58,7 @@ work.pic/
   .cache-lock              # 派生缓存发布/淘汰独立锁，不参与历史提交
 ```
 
-manifest 的 `source={sha256,bytes}` 引用内嵌原始素材；`imported_from` 仅供溯源，绝不用于恢复时找文件。相同文件字节只存一份，已存在资产重新校验后复用；不同编码的同像素图片不视作同一文件资产。每个 ops 文件包含结构版本、commit ID、组 base/output revision 和 `steps` 数组；步骤包含 op ID、base/output revision、规范化 `operation={op,op_version,target,params}`、输入与结果资产引用。目前直接单图操作的输入依赖都是源资产，结果资产为空，后续图层任务扩展同一结构。
+manifest 的 `source={sha256,bytes}` 引用内嵌原始素材；`imported_from` 仅供溯源，绝不用于恢复时找文件。相同文件字节只存一份，已存在资产重新校验后复用；不同编码的同像素图片不视作同一文件资产。每个 ops 文件包含结构版本、commit ID、组 base/output revision 和 `steps` 数组；步骤包含 op ID、base/output revision、规范化 `operation={op,op_version,target,params}`、输入与结果资产引用。直接单图操作的输入依赖是源资产；图层／蒙版／composite 操作在该数组追加自身的直接资源引用，source/mask 参数绑定为 asset:<sha256>。结果资产仍为空。祖先前缀包含全部传递依赖，命中缓存也必须验证。
 
 打开时只读取 manifest 索引，校验所有已提交 ops（包括失效 redo 路径），其摘要、结构版本、操作语义版本、ID 唯一性/顺序、前向 revision 链、组边界与规范化参数。选中步骤恢复时始终验证源素材长度和 SHA-256，未命中有效检查点时直接解码这些已验证字节，避免在哈希验证与解码之间再次按路径读取。修改素材或 ops 字节会得到 `integrity_mismatch`；缺必需素材为 `asset_missing`；缺 ops 为 `file_not_found`。未知结构/op/像素语义版本为 `unsupported_version`，不使用新默认值猜测历史。engine_version 记录创建版本，重放兼容性以结构/op/像素语义版本校验。
 
@@ -90,9 +90,9 @@ apply、undo、redo 都在发布前检查新 manifest 加已有/新增 commit �
 | 字段 | 实际归属 |
 | --- | --- |
 | `validation_ms` | CLI apply 的管线文件读取、解析与参数校验；export/preview 的编码选项、输出路径、覆盖及工程内输出限制检查 |
-| `read_ms` | create 的原始图像路径解析与字节读取；`Project::load` 的 manifest/ops 读取、JSON 解析、摘要/版本/参数及历史关系校验；`restore` 的源资产读取、哈希与长度校验 |
+| `read_ms` | create 的原始图像路径解析与字节读取；`Project::load` 的 manifest/ops 读取、JSON 解析、摘要/版本/参数及历史关系校验；`restore` 的全部依赖资产读取、哈希与长度校验；新图层／蒙版导入字节读取 |
 | `decode_ms` | 原始输入或已验证源资产的图像准入、解码、EXIF 归一化及工作像素转换 |
-| `process_ms` | 恢复选定 revision 的管线构建与剩余步骤重放，以及 apply 的新操作执行；inspect、undo/redo、export/preview 所需的重放也计入 |
+| `process_ms` | 恢复选定 revision 的管线构建与剩余步骤重放，以及 apply 的新操作执行；inspect、undo/redo、export/preview 所需重放、完整 Document 合成、指定图层／蒙版渲染，以及操作内部已绑定资产的读取／解码也计入 |
 | `encode_ms` | export/preview 的最终像素量化、透明度处理和图像压缩编码 |
 | `write_ms` | 工程资产/ops/manifest 的持久化、临时文件/目录创建、flush、关闭与原子发布，以及 export/preview 的输出发布；存储时的摘要计算和发布前 manifest 重读、解析、expected_revision/快照复核也在该计时范围内 |
 | `total_ms` | CLI 从 main 入口到结果序列化前的全部耗时，包括 CLI 解析、工程写锁等待和未分类开销；不包含进程启动、stdout 序列化/写入及进程退出 |
